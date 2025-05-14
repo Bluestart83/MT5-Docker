@@ -11,7 +11,14 @@ services:
       - "5928:8080"
       - "8010:8000"
     volumes:
-        - "./mt5_data/config:/root/.wine/drive_c/Program Files/MetaTrader 5/config/"
+        - "./mt5_data_prod/Templates/:/root/.wine/drive_c/Program Files/MetaTrader 5/Templates/"
+        - "./mt5_data_prod/Profiles/:/root/.wine/drive_c/Program Files/MetaTrader 5/Profiles/"
+        - "./mt5_data_prod/Config/:/root/.wine/drive_c/Program Files/MetaTrader 5/Config/"
+        - "./mt5_data_prod/Bases/:/root/.wine/drive_c/Program Files/MetaTrader 5/Bases/"
+        - "./mt5_data_prod/MQL5/Profiles/Charts/Default/:/root/.wine/drive_c/Program Files/MetaTrader 5/MQL5/Profiles/Charts/Default/"
+        - "./mt5_data_prod/MQL5/Logs/:/root/.wine/drive_c/Program Files/MetaTrader 5/MQL5/Logs/"
+        - "./mt5_data_prod/logs/:/root/.wine/drive_c/Program Files/MetaTrader 5/logs/"
+        
         - "./mt5_data/MT5Strategies:/root/.wine/drive_c/Program Files/MetaTrader 5/MQL5/Experts/MyStrategy"
     #   - ./docker/mt5/:/root/.wine/drive_c/fx
     environment:
