@@ -1,0 +1,21 @@
+services:
+  mt5:
+    image: bluestart83/mt5-docker:dev
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      network: host
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "5928:8080"
+      - "8010:8000"
+    volumes:
+        - "./mt5_data/MT5Strategies:/root/.wine/drive_c/Program Files/MetaTrader 5/MQL5/Experts/MyStrategy"
+    #   - ./docker/mt5/:/root/.wine/drive_c/fx
+    environment:
+      - ACCOUNT=YOURACCOUNT
+      - PASSWORD=YOURACCOUNTPASSWORD
+      - SERVER=YOURSERVER
+    deploy:
+      replicas: 1
