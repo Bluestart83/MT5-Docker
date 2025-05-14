@@ -12,3 +12,6 @@ Fork de fx-tinny
 
 See:
 https://medium.com/@asc686f61/use-mt5-in-linux-with-docker-and-python-f8a9859d65b1
+
+Added config save in docker compose in order to keep config between image launches!
+It's needded when using generic images, because MT5 Servers DNS like are not fetched.

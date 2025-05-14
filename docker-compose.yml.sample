@@ -11,6 +11,7 @@ services:
       - "5928:8080"
       - "8010:8000"
     volumes:
+        - "./mt5_data/config:/root/.wine/drive_c/Program Files/MetaTrader 5/config/"
         - "./mt5_data/MT5Strategies:/root/.wine/drive_c/Program Files/MetaTrader 5/MQL5/Experts/MyStrategy"
     #   - ./docker/mt5/:/root/.wine/drive_c/fx
     environment:
