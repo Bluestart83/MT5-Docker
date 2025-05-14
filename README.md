@@ -6,9 +6,10 @@ Fork de fx-tinny
 # goto localhost:8080 to see the window
 # goto localhost:8010/docs to access swagger api
 
-# Wht changed in this FORK:
+# Changes in this FORK:
 - No custom exe, we download it directly from Metatrader !
 - Added some API for history and tick fetch, and order modify (not fully tested)
+- Now use last version of Wine-HQ ! (that is supported by MT5 officially)
 
 See:
 https://medium.com/@asc686f61/use-mt5-in-linux-with-docker-and-python-f8a9859d65b1
