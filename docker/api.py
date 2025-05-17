@@ -9,8 +9,8 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import List, Union, Dict
-from fastapi import FastAPI, Query, HTTPException
+from typing import List, Union, Dict, Optional
+from fastapi import FastAPI, Query, HTTPException, Path, Response, status, Body
 
 from models import (
     OrderRequest,
@@ -194,37 +194,37 @@ def candle_last(inp: GetLastCandleRequest):
         raise RuntimeError(mt5.last_error())
 
 
-@app.post("/deals/all")
-def deals_all(inp: GetLastDealsHistoryRequest):
-    """
-    Retourne l'historique des deals à partir du 1er janvier 2025 jusqu'à maintenant +3 jours.
-    https://pastebin.com/raw/9QgW5yYi
-    """
+# Trade History (finished)
+@app.get("/hitory-deals", summary="Récupère l'historique des deals (filtrage par symbol et magic)")
+def deals_all(
+    symbol: Optional[str] = Query(None, description="Symbole à filtrer (ex: XAUUSD)"),
+    magic: Optional[int] = Query(None, description="Magic number à filtrer")
+):
     try:
         from_date = datetime(2025, 1, 1)
-        to_date = datetime.now() + timedelta(days=3)
+        to_date = datetime.utcnow() + timedelta(days=3)
 
-        if inp.symbol:
-            deals = mt5.history_deals_get(from_date, to_date, group=inp.symbol)
+        if symbol:
+            deals = mt5.history_deals_get(from_date, to_date, group=symbol)
         else:
             deals = mt5.history_deals_get(from_date, to_date)
 
         if deals is None:
             code, msg = mt5.last_error()
-            return JSONResponse(
-                status_code=500,
-                content={"status": "error", "retcode": code, "comment": msg}
-            )
+            raise HTTPException(status_code=500, detail=f"[{code}] {msg}")
 
-        return [deal._asdict() for deal in deals]
+        filtered = [
+            d._asdict()
+            for d in deals
+            if magic is None or d.magic == magic
+        ]
+
+        return filtered
 
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "detail": str(e)}
-        )
-    
-@app.get("/account/login")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/account/login")
 def account_login():
     success = mt5.initialize(
         path=MT5_EXEC,
@@ -250,7 +250,7 @@ def account_login():
 @app.get("/account/info")
 def account_info():
     try:
-        res = mt5.account_info()._asdict()
+        res = mt5.account_info()
         return res._asdict()
 
     except Exception as e:
@@ -263,19 +263,26 @@ def account_info():
             }
         )
 
-@app.post("/trade/buy")
-def trade_buy(request: OrderRequest):
-    #close_all(request.symbol, request.magic, request.deviation)
 
+@app.post("/trade")
+def trade_sell(request: OrderRequest):
+    #close_all(request.symbol, request.magic, request.deviation)
+    side = request.side.lower()
+    if side not in ("buy", "sell"):
+        raise HTTPException(status_code=400, detail="Le champ `side` doit être 'buy' ou 'sell'.")
+
+    return _trade_buy(request, mt5.ORDER_TYPE_BUY if request.side =="buy" else mt5.ORDER_TYPE_SELL)
+
+def _trade_buy(request: OrderRequest, side) -> Dict:
+    #close_all(request.symbol, request.magic, request.deviation)
     try:
+        symbol_info = mt5.symbol_info(request.symbol)
+        digits = symbol_info.digits
         body = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": request.symbol,
             "volume": request.lot,
-            "type": mt5.ORDER_TYPE_BUY,
-            "sl": request.sl,
-            "tp":request.tp,
-            "price": request.price,
+            "type": side,
             "deviation": request.deviation,
             "magic": request.magic,
             "comment": request.comment,
@@ -283,7 +290,17 @@ def trade_buy(request: OrderRequest):
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
 
+        if request.price > 0.0:
+            body["price"] = _round_price(request.price, digits)
+
+        if request.tp > 0.0:
+            body["tp"] = _round_price(request.tp, digits)
+
+        if request.sl > 0.0:
+            body["sl"] = _round_price(request.sl, digits)
+
         # send a trading request
+        ##return JSONResponse({"msg": "OK"})
         result = mt5.order_send(body)
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             return JSONResponse(
@@ -307,39 +324,8 @@ def trade_buy(request: OrderRequest):
             }
         )
 
-
-@app.post("/trade/sell")
-def trade_sell(request: OrderRequest):
-    #close_all(request.symbol, request.magic, request.deviation)
-    try:
-        body = {
-            "action": mt5.TRADE_ACTION_DEAL,
-            "symbol": request.symbol,
-            "volume": request.lot,
-            "type": mt5.ORDER_TYPE_SELL,
-            "sl": request.sl,
-            "tp": request.tp,
-            "price": request.price,
-            "deviation": request.deviation,
-            "magic": request.magic,
-            "comment": request.comment,
-            "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
-        }
-
-        # send a trading request
-        result = mt5.order_send(body)
-        return result._asdict()
-
-    except Exception as e:
-        code, message = mt5.last_error()  # ← tuple (int, str)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": f"Exception: {str(e)}",
-                "mt5_last_error": {"code": code, "message": message}
-            }
-        )
+def _round_price(value: float, digits: int) -> float:
+    return round(value, digits)
 
 
 
@@ -381,7 +367,7 @@ def close_all(symbol: str, magic: int, deviation: int = 10) -> List[dict]:
                 "price": price,
                 "deviation": deviation,
                 "magic": p.magic,
-                "comment": "python script close",
+                "comment": "API script close",
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": mt5.ORDER_FILLING_IOC,
             }
@@ -396,8 +382,8 @@ def close_all(symbol: str, magic: int, deviation: int = 10) -> List[dict]:
         return [{"error": str(e)}]
 
 
-@app.post("/trade/close")
-def trade_close(request: CloseRequest):
+@app.post("/trade-closeall")
+def trade_close_all(request: CloseRequest):
     try:
         results = close_all(request.symbol, request.magic, request.deviation)
 
@@ -417,12 +403,14 @@ def trade_close(request: CloseRequest):
             }
         )
 
-@app.post(
-    "/trade/modify",
+
+
+@app.put(
+    "/trade/{order_id}",
     summary="Modify TP or SL of an open position",
     description=(
         "Modifies the Stop Loss and/or Take Profit of an open position identified by its ticket.\n\n"
-        "- `ticket`: position ID\n"
+        "- `order_id`: position ID\n"
         "- `tp`: new take profit price (optional)\n"
         "- `sl`: new stop loss price (optional)"
     ),
@@ -449,46 +437,44 @@ def trade_close(request: CloseRequest):
         }
     }
 )
-def modify_order(request: ModifyOrderRequest):
+def modify_order(
+    order_id: int = Path(..., description="Ticket ID of the position to modify"),
+    request: ModifyOrderRequest = Body(...)
+):
     try:
-        positions = mt5.positions_get(ticket=request.ticket)
+        positions = mt5.positions_get(ticket=order_id)
         if not positions:
-            raise ValueError(f"Position with ticket {request.ticket} not found")
+            raise HTTPException(status_code=404, detail=f"Position with ticket {order_id} not found")
 
         position = positions[0]
-        symbol_info = mt5.symbol_info(request.symbol)
-        if not symbol_info:
-            raise ValueError(f"Invalid symbol: {request.symbol}")
-
-        point = symbol_info.point
 
         sl = request.sl if request.sl is not None else position.sl
         tp = request.tp if request.tp is not None else position.tp
 
         trade_request = {
             "action": mt5.TRADE_ACTION_SLTP,
-            "symbol": request.symbol,
-            "position": request.ticket,
+            "symbol": position.symbol,
+            "position": order_id,
             "sl": sl,
             "tp": tp,
             "deviation": request.deviation,
-            "magic": request.magic,
-            "comment": request.comment,
+            "magic": request.magic if request.magic is not None else position.magic,
+            "comment": request.comment or "SL/TP modified",
         }
 
         result = mt5.order_send(trade_request)
+
         return {
             "success": result.retcode == mt5.TRADE_RETCODE_DONE,
             "result": result._asdict()
         }
 
     except Exception as e:
-        logging.exception("Error in /trade/modify")
-        return {"success": False, "error": str(e)}
-
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.post(
-    "/tick/history",
+    "/history/ticks",
     summary="Retrieve tick data from MT5",
     description=(
         "Returns a list of ticks between two datetime values for the specified symbol using MetaTrader 5.\n\n"
@@ -525,9 +511,6 @@ def tick_history(inp: GetHistoryTickRequest):
         raise RuntimeError(str(e) or mt5.last_error())
 
 
-if __name__ == "__main__":
-    uvicorn.run("api:app", port=8000, host="0.0.0.0", reload=False, log_level="debug")
-
 # Endpoint GET avec paramètre `symbol`
 @app.get("/symbol-info/{symbol}")
 def symbol_info(symbol: str):
@@ -538,31 +521,113 @@ def symbol_info(symbol: str):
     return info._asdict()
 
 # TODO test it
-@app.post("/trade/cancel")
-def cancel_order_endpoint(order_id: int):
+@app.delete("/trade/{order_id}", summary="Clôturer une position existante", status_code=200)
+def close_position_by_id(
+    order_id: int = Path(..., description="ID de la position à clôturer"),
+    magic: Optional[int] = Query(None, description="Magic number de sécurité"),
+    deviation: int = Query(10, description="Déviation maximale autorisée (slippage)")
+):
     try:
-        result = mt5.order_check({
-            "action": mt5.TRADE_ACTION_REMOVE,
-            "order": order_id
-        })
-        return {"success": True, "result": result._asdict()}
+        positions = mt5.positions_get(ticket=order_id)
+        if not positions:
+            raise HTTPException(status_code=404, detail=f"Position {order_id} introuvable")
+
+        position = positions[0]
+
+        if magic is not None and position.magic != magic:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Magic incorrect : attendu {magic}, reçu {position.magic}"
+            )
+
+        symbol = position.symbol
+        volume = position.volume
+
+        tick = mt5.symbol_info_tick(symbol)
+        if not tick or tick.ask == 0 or tick.bid == 0:
+            raise HTTPException(status_code=500, detail="Tick invalide")
+
+        if position.type == mt5.ORDER_TYPE_BUY:
+            price = tick.bid
+            order_type = mt5.ORDER_TYPE_SELL
+        elif position.type == mt5.ORDER_TYPE_SELL:
+            price = tick.ask
+            order_type = mt5.ORDER_TYPE_BUY
+        else:
+            raise HTTPException(status_code=400, detail=f"Type de position non supporté : {position.type}")
+
+        request = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "symbol": symbol,
+            "volume": volume,
+            "type": order_type,
+            "position": order_id,
+            "price": price,
+            "deviation": deviation,
+            "magic": position.magic,
+            "comment": "API close by DELETE",
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_IOC,
+        }
+
+        result = mt5.order_send(request)
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Erreur MT5 : {result.comment} (retcode {result.retcode})"
+            )
+
+        return result._asdict()
+
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # TODO test it
-@app.get("/position")
-def list_positions():
+@app.get("/positions")
+def list_positions(symbol: Optional[str] = Query(None), magic: Optional[int] = Query(None)):
     try:
-        positions = mt5.positions_get()
-        if not positions:
+        # Appel natif : on filtre par symbol si fourni
+        positions = mt5.positions_get(symbol=symbol)
+
+        if positions is None or len(positions) == 0:
             return []
+
+        # Filtrage supplémentaire côté Python pour le magic number
+        if magic is not None:
+            positions = [p for p in positions if p.magic == magic]
+
         return [p._asdict() for p in positions]
+
     except Exception as e:
         return {"error": str(e)}
-    
+        
 
+@app.get("/positions/{ticket}")
+def get_position_by_ticket(
+    ticket: int = Path(..., description="Numéro du ticket de la position"),
+    magic: Optional[int] = Query(None, description="Magic number pour filtrer")
+):
+    try:
+        positions = mt5.positions_get(ticket=ticket)
+
+        if not positions:
+            raise HTTPException(status_code=404, detail=f"Aucune position trouvée pour le ticket {ticket}")
+
+        position = positions[0]
+
+        if magic is not None and position.magic != magic:
+            raise HTTPException(status_code=404, detail=f"Position trouvée, mais magic number ≠ {magic}")
+
+        return position._asdict()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+    
 @app.post(
-    "/candle/history",
+    "/history/candle",
     summary="Get historical candle data",
     description=(
         "Returns a list of raw candles from MetaTrader 5.\n\n"
@@ -645,3 +710,7 @@ async def websocket_endpoint(websocket: WebSocket, symbol: str):
 
 
 # uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4 --reload --reload-include *.yml"
+
+
+if __name__ == "__main__":
+    uvicorn.run("api:app", port=8000, host="0.0.0.0", reload=False, log_level="debug")

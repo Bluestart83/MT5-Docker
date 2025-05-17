@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=MetaTrader 5
+GenericName=Trading Platform
+Comment=MetaTrader 5 Trading Platform
+Exec=/usr/bin/wine64 "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
+Icon=system-run
+Terminal=false
+Categories=Finance;Office;
+Path=/root/.mt5/drive_c/Program Files/MetaTrader 5/

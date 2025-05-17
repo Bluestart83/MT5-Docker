@@ -10,6 +10,7 @@ class GetLastCandleRequest(BaseModel):
 
 
 class OrderRequest(BaseModel):
+    side: Optional[str] = Field("side", examples=["buy", "sell"])
     symbol: Optional[str] = Field("XAUUSD", examples=["XAUUSD"])
     magic: Optional[int] = Field(0, examples=[0])
     lot: Optional[float] = Field(0.01, examples=[0.01, 0.02])

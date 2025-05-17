@@ -45,6 +45,16 @@ RUN xvfb-run bash /root/.wine/drive_c/fx/install_and_run_mt5ubuntu.sh || true
 RUN touch /root/.wine/.update-timestamp
 RUN echo 'disable' > $WINEPREFIX/.update-timestamp
 
+
+RUN mkdir -p /root/Desktop
+COPY ./docker/metatrader5.desktop /root/Desktop/
+#RUN gio set -t string /root/Desktop/metatrader5.desktop metadata::xfce-exe-checksum "$(sha256sum /root/Desktop/metatrader5.desktop | awk '{print $1}')"
+#RUN gio set -t string /root/Desktop/metatrader5.desktop metadata::xfce-exe-checksum "53f7ef56e40b6f8b1a83b23cc73d973580452cd3b6e0042cfc2b34f065b9bb91"
+#RUN /usr/bin/gio set -t string /root/Desktop/metatrader5.desktop metadata::xfce-exe-checksum "53f7ef56e40b6f8b1a83b23cc73d973580452cd3b6e0042cfc2b34f065b9bb91"
+
+#RUN kwriteconfig5 --file kiorc --group "KDE Action Restrictions" --key "shell_access" true
+
+
 COPY ./docker/*.py /root/.wine/drive_c/fx/
 
 CMD ["/usr/bin/supervisord"]
