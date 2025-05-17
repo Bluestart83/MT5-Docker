@@ -9,24 +9,17 @@ class GetLastCandleRequest(BaseModel):
     count: Optional[int] = Field(100, examples=[100, 1000])
 
 
-class BuyRequest(BaseModel):
+class OrderRequest(BaseModel):
     symbol: Optional[str] = Field("XAUUSD", examples=["XAUUSD"])
     magic: Optional[int] = Field(0, examples=[0])
     lot: Optional[float] = Field(0.01, examples=[0.01, 0.02])
-    sl_point: Optional[int] = Field(200, examples=[200, 300])
-    tp_point: Optional[int] = Field(200, examples=[200, 300])
+    sl: Optional[float] = Field(200, examples=[200, 300])
+    tp: Optional[float] = Field(200, examples=[200, 300])
+    price: Optional[float] = Field(200, examples=[200, 300])
     deviation: Optional[int] = Field(200, examples=[200, 300])
     comment: Optional[str] = Field("Buy 123", examples=["NO COMMENT"])
 
 
-class SellRequest(BaseModel):
-    symbol: Optional[str] = Field("XAUUSD", examples=["XAUUSD"])
-    magic: Optional[int] = Field(0, examples=[0])
-    lot: Optional[float] = Field(0.01, examples=[0.01, 0.02])
-    sl_point: Optional[int] = Field(200, examples=[200, 300])
-    tp_point: Optional[int] = Field(200, examples=[200, 300])
-    deviation: Optional[int] = Field(200, examples=[200, 300])
-    comment: Optional[str] = Field("Sell 123", examples=["NO COMMENT"])
 
 
 class CloseRequest(BaseModel):
