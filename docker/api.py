@@ -11,6 +11,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import List, Union, Dict, Optional
 from fastapi import FastAPI, Query, HTTPException, Path, Response, status, Body
+import numpy as np
 
 from models import (
     OrderRequest,
@@ -32,6 +33,8 @@ from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import asyncio
 
+import inspect
+
 clients = []
 
 log_file_path = "./fxscript.log"
@@ -43,7 +46,6 @@ logging.basicConfig(
 )
 
 logging.info("Starting api")
-
 
 while True:
     try:
@@ -101,6 +103,14 @@ for v in range(10):
     else:
         logging.info(f"Starting mt5 done")
         break
+
+
+# Build mapping {code: name}
+retcode_map = {
+    value: name
+    for name, value in inspect.getmembers(mt5)
+    if name.startswith("TRADE_RETCODE_") and isinstance(value, int)
+}
 
 # # init kazzoo
 # kazoo_client = KazooClient()
@@ -196,7 +206,7 @@ def response_from_mt5_result(
             status_code=200,
             content={
                 "retcode": success_retcode,
-                "status": "ok",
+                "status": retcode_map.get(success_retcode, "UNKNOWN_RETCODE"),
                 "data": data
             }
         )
@@ -215,7 +225,7 @@ def response_from_mt5_result(
             status_code=200,
             content={
                 "retcode": success_retcode,
-                "status": "ok",
+                "status":retcode_map.get(retcode, "UNKNOWN_RETCODE"),
                 "data": data
             }
         )
@@ -225,7 +235,7 @@ def response_from_mt5_result(
             status_code=207,
             content={
                 "retcode": retcode,
-                "status": "partial",
+                "status": retcode_map.get(retcode, "UNKNOWN_RETCODE"),
                 "message": result_dict.get("comment", "Partially executed"),
                 "data": data
             }
@@ -235,7 +245,7 @@ def response_from_mt5_result(
         status_code=400,
         content={
             "retcode": retcode,
-            "status": "error",
+            "status": retcode_map.get(retcode, "UNKNOWN_RETCODE"),
             "message": result_dict.get("comment", "MT5 error"),
             "data": data
         }
@@ -256,6 +266,12 @@ def response_from_exception(e: Exception):
         }
     )
 
+def numpy_to_native(obj):
+    if isinstance(obj, np.generic):
+        return obj.item()
+    return obj
+
+
 @app.post("/candle/last")
 def candle_last(inp: GetLastCandleRequest):
     timeframe = tf_dic.get(inp.timeframe)
@@ -267,8 +283,14 @@ def candle_last(inp: GetLastCandleRequest):
         code, msg = mt5.last_error()
         return response_from_mt5_result( {"retcode": code, "status": "error", "message": msg})
 
-    data = [dict(r) for r in rates]
-    if inp.start == 0:
+    # Convertir numpy structured array → liste de dicts
+    data = [
+        {key: numpy_to_native(r[key]) for key in rates.dtype.names}
+        for r in rates
+    ]
+
+    # Supprimer la dernière bougie si start == 0
+    if inp.start == 0 and data:
         data = data[:-1]
 
     return response_from_mt5_result( data)
@@ -291,7 +313,7 @@ def deals_all(
             code, msg = mt5.last_error()
             return {
                 "retcode": code,
-                "status": "error",
+                "status": retcode_map.get(code, "UNKNOWN_RETCODE"),
                 "message": msg,
                 "data": []
             }
@@ -317,7 +339,7 @@ def account_login():
             status_code=500,
             content={
                 "retcode": code,
-                "status": "error",
+                "status": retcode_map.get(code, "UNKNOWN_RETCODE"),
                 "comment": msg
             }
         )
@@ -545,13 +567,20 @@ def tick_history(inp: GetHistoryTickRequest):
             inp.symbol,
             from_date,
             to_date,
-            mt5.COPY_TICKS_ALL  # ou COPY_TICKS_TRADE / COPY_TICKS_INFO
+            mt5.COPY_TICKS_ALL
         )
 
         if ticks is None or len(ticks) == 0:
-            raise RuntimeError(f"No ticks found: {mt5.last_error()}")
+            code, msg = mt5.last_error()
+            raise RuntimeError(f"No ticks found: {msg}", {"code": code})
 
-        return response_from_mt5_result(ticks)
+        # Convert numpy structured array to JSON-safe list of dicts
+        ticks_list = [
+            {key: numpy_to_native(t[key]) for key in ticks.dtype.names}
+            for t in ticks
+        ]
+
+        return response_from_mt5_result(ticks_list)
 
     except Exception as e:
         return response_from_exception(e)
@@ -566,7 +595,6 @@ def symbol_info(symbol: str):
 
     return response_from_mt5_result(info._asdict())
 
-# TODO test it
 @app.delete("/trade/{order_id}", summary="Clôturer une position existante", status_code=200)
 def close_position_by_id(
     order_id: int = Path(..., description="ID de la position à clôturer"),
@@ -627,12 +655,15 @@ def close_position_by_id(
         return response_from_exception(e)
 
 
-# TODO test it
 @app.get("/positions")
 def list_positions(symbol: Optional[str] = Query(None), magic: Optional[int] = Query(None)):
     try:
         # Appel natif : on filtre par symbol si fourni
-        positions = mt5.positions_get(symbol=symbol)
+        if symbol is not None:
+            positions = mt5.positions_get(symbol=symbol)
+        else:
+            positions = mt5.positions_get()  # récupère tous les ordres
+
 
         if positions is None or len(positions) == 0:
             return []
@@ -661,7 +692,7 @@ def get_position_by_ticket(
         position = positions[0]
 
         if magic is not None and position.magic != magic:
-            raise HTTPException(status_code=404, detail=f"Position trouvée, mais magic number ≠ {magic}")
+            raise HTTPException(status_code=404, detail=f"No position found fot magic number ≠ {magic}")
 
         return response_from_mt5_result(position)
 
@@ -669,7 +700,62 @@ def get_position_by_ticket(
         return response_from_exception(e)
 
 
-    
+@app.get("/orders")
+def list_orders(symbol: Optional[str] = Query(None), magic: Optional[int] = Query(None)):
+    try:
+        # Appel natif : on filtre par symbol si fourni
+        if symbol is not None:
+            orders = mt5.orders_get(symbol=symbol)
+        else:
+            orders = mt5.orders_get()  # récupère tous les ordres
+
+        if orders is None or len(orders) == 0:
+            return []
+
+        # Filtrage supplémentaire côté Python pour le magic number
+        if magic is not None:
+            orders = [p for p in orders if p.magic == magic]
+
+        result = [p._asdict() for p in orders]
+        return response_from_mt5_result(result)
+
+    except Exception as e:
+        return response_from_exception(e)
+
+@app.get("/orders/{ticket}")
+def get_order_by_ticket(
+    ticket: int = Path(..., description="Numéro du ticket de l'ordre"),
+    magic: Optional[int] = Query(None, description="Magic number pour filtrer")
+):
+    try:
+        positions = mt5.orders_get(ticket=ticket)
+
+        if not positions:
+            raise HTTPException(status_code=404, detail=f"Aucun ordre trouvée pour le ticket {ticket}")
+
+        position = positions[0]
+
+        if magic is not None and position.magic != magic:
+            raise HTTPException(status_code=404, detail=f"No order found for magic number ≠ {magic}")
+
+        return response_from_mt5_result(position)
+
+    except Exception as e:
+        return response_from_exception(e)
+
+@app.delete("/orders/{order_id}", summary="Close an existing order", status_code=200)
+def close_order_by_id(
+    order_id: int = Path(..., description="ID de la position à clôturer"),
+    magic: Optional[int] = Query(None, description="Magic number de sécurité"),
+):
+    try:
+        result = mt5.order_delete(ticket=order_id)
+        return response_from_mt5_result(result)
+
+    except Exception as e:
+        return response_from_exception(e)
+
+
 @app.post(
     "/history/candle",
     summary="Get historical candle data",

@@ -1,3 +1,4 @@
+*/__pycache__
 docker-compose.yml
 mt5_data/
 mt5_data_prod/
