@@ -44,8 +44,6 @@ class GetHistoryTickRequest(BaseModel):
     to_date: datetime.datetime
 
 class ModifyOrderRequest(BaseModel):
-    symbol: str
-    ticket: int  # ID de la position à modifier
     tp: Optional[float] = None  # nouveau take profit (ou None pour ne pas le modifier)
     sl: Optional[float] = None  # nouveau stop loss (ou None pour ne pas le modifier)
     deviation: Optional[int] = 20
