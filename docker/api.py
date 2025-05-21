@@ -11,6 +11,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import List, Union, Dict, Optional
 from fastapi import FastAPI, Query, HTTPException, Path, Response, status, Body
+from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 
 from models import (
@@ -158,7 +159,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
+# Allow CORS Requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # ou remplace "*" par ["http://localhost:8089"] pour être plus restrictif
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
@@ -359,7 +367,7 @@ def account_info():
 
 
 @app.post("/trade")
-def trade_sell(request: OrderRequest):
+def trade_new(request: OrderRequest):
     #close_all(request.symbol, request.magic, request.deviation)
     side = request.side.lower()
     if side not in ("buy", "sell"):
