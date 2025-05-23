@@ -378,7 +378,10 @@ def trade_new(request: OrderRequest):
 def _trade_buy(request: OrderRequest, side) -> Dict:
     #close_all(request.symbol, request.magic, request.deviation)
     try:
+         # Choisir un mode valide
         symbol_info = mt5.symbol_info(request.symbol)
+        filling_mode = get_safe_filling_mode(symbol_info)
+
         digits = symbol_info.digits
         body = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -389,7 +392,7 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
             "comment": request.comment,
             "type_time": mt5.ORDER_TIME_GTC,
             #"type_filling": mt5.ORDER_FILLING_IOC,
-            "type_filling": symbol_info.filling_mode
+            "type_filling": filling_mode
         }
 
         if request.price is not None:
@@ -404,6 +407,7 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
         if request.sl and request.sl > 0:
             body["sl"] = _round_price(request.sl, digits)
 
+
         # send a trading request
         ##return JSONResponse({"msg": "OK"})
         result = mt5.order_send(body)
@@ -412,6 +416,18 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
     except Exception as e:
         return response_from_exception(e)
     
+def get_safe_filling_mode(info) -> Optional[int]:
+    if info is None:
+        return None
+
+    # Par défaut, retourne le mode défini par le broker
+    mode = info.filling_mode
+
+    # Si en Market Execution, ORDER_FILLING_RETURN est invalide
+    if info.trade_exemode == mt5.SYMBOL_TRADE_EXECUTION_MARKET and mode == mt5.ORDER_FILLING_RETURN:
+        # Essaye IOC
+        return mt5.ORDER_FILLING_IOC
+    return mode
 
 def _round_price(value: float, digits: int) -> float:
     return round(value, digits)
@@ -432,6 +448,7 @@ def close_all(symbol: str, magic: int, deviation: int = 10) -> List[dict]:
         raise Exception(f"Tick invalide pour {symbol} — ask/bid indisponible")
 
     symbol_info = mt5.symbol_info(symbol)
+    filling_mode = get_safe_filling_mode(symbol_info)
     
     results = []
     for p in positions:
@@ -459,8 +476,10 @@ def close_all(symbol: str, magic: int, deviation: int = 10) -> List[dict]:
             "comment": "API script close",
             "type_time": mt5.ORDER_TIME_GTC,
             #"type_filling": mt5.ORDER_FILLING_IOC,
-            "type_filling": symbol_info.filling_mode
+            "type_filling": filling_mode
         }
+
+        print(f"TRADE={request}")
 
         result = mt5.order_send(request)
         result_dict = result._asdict() if result is not None else {"error": "order_send failed"}
@@ -631,7 +650,8 @@ def close_position_by_id(
             raise HTTPException(status_code=500, detail="Tick invalide")
         
         symbol_info = mt5.symbol_info(symbol)
-
+        filling_mode = get_safe_filling_mode(symbol_info)
+        
         if position.type == mt5.ORDER_TYPE_BUY:
             price = tick.bid
             order_type = mt5.ORDER_TYPE_SELL
@@ -653,7 +673,7 @@ def close_position_by_id(
             "comment": "Closed manually",
             "type_time": mt5.ORDER_TIME_GTC,
             #"type_filling": mt5.ORDER_FILLING_IOC,
-            "type_filling": symbol_info.filling_mode
+            "type_filling": filling_mode
         }
 
         result = mt5.order_send(request)
