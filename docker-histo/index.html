@@ -384,14 +384,20 @@ function highlightTableRow(ticket) {
   if (targetRow.length > 0) {
     targetRow.addClass('highlighted-row');
     
+    // Vérifier si la ligne est visible dans le conteneur
     const container = $('#table-container');
-    const rowOffset = targetRow.offset().top - container.offset().top + container.scrollTop();
-    const containerHeight = container.height();
-    const scrollTo = rowOffset - (containerHeight / 2);
+    const containerTop = container.scrollTop();
+    const containerBottom = containerTop + container.height();
+    const rowTop = targetRow.position().top + containerTop;
+    const rowBottom = rowTop + targetRow.outerHeight();
     
-    container.animate({
-      scrollTop: scrollTo
-    }, 300);
+    // Scroller seulement si la ligne n'est pas visible
+    if (rowTop < containerTop || rowBottom > containerBottom) {
+      const scrollTo = rowTop - (container.height() / 2);
+      container.stop().animate({
+        scrollTop: Math.max(0, scrollTo)
+      }, 200);
+    }
   }
 }
 </script>
