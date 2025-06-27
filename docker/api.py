@@ -619,6 +619,26 @@ def symbol_info(symbol: str):
     info = mt5.symbol_info(symbol)
     if info is None:
         raise HTTPException(status_code=404, detail=f"Symbole introuvable : {symbol}")
+    
+    # Active s’il n’est pas visible
+    if not info.visible:
+        print(f"Activation du symbole {symbol}...")
+        if not mt5.symbol_select(symbol, True):
+            raise HTTPException(status_code=500, detail=f"Impossible d’activer {symbol}")
+        info = mt5.symbol_info(symbol)
+        if info is None:
+            raise HTTPException(status_code=404, detail=f"Symbole introuvable après activation : {symbol}")
+
+    # attend que les prix arrivent
+    for _ in range(5):
+        if info.ask > 0 or info.bid > 0:
+            break
+        time.sleep(0.1)
+        info = mt5.symbol_info(symbol)
+
+    #if info.ask == 0 and info.bid == 0:
+    #    #trade_mode == 0 => marker closed
+    #    raise HTTPException(status_code=503, detail=f"No prices available for {symbol} => Market closed?")
 
     return response_from_mt5_result(info._asdict())
 
