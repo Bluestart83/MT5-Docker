@@ -631,7 +631,8 @@ def symbol_info(symbol: str):
 
     # attend que les prix arrivent
     for _ in range(5):
-        if info.ask > 0 or info.bid > 0:
+        # Si prix dispo OU marché fermé (donc inutile d'attendre)
+        if info.ask > 0 or info.bid > 0 or info.trade_mode == 0:
             break
         time.sleep(0.1)
         info = mt5.symbol_info(symbol)
