@@ -198,7 +198,12 @@ function displayData(filtered) {
       cumulative += d.profit;
       chartLabels.push(dateStr);
       chartData.push(cumulative);
-      chartToTableMap.push(d.ticket);
+      chartToTableMap.push({
+        ticket: d.ticket,
+        symbol: d.symbol,
+        profit: d.profit,
+        reason: d.reason
+      });
     }
   });
 
@@ -332,7 +337,7 @@ function renderChart(labels, data) {
     data: {
       labels: labels,
       datasets: [{
-        label: chartLabel,
+        label: '', // Vider le label du dataset pour éviter l'affichage par défaut
         data: data,
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1,
@@ -351,6 +356,33 @@ function renderChart(labels, data) {
         zoom: {
           pan: { enabled: true, mode: 'x' },
           zoom: { wheel: { enabled: true }, pinch: { enabled: true }, drag: { enabled: true }, mode: 'x' }
+        },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            title: function(context) {
+              return context[0].label;
+            },
+            label: function(context) {
+              const dataIndex = context.dataIndex;
+              const tradeInfo = chartToTableMap[dataIndex];
+              
+              let lines = [];
+              lines.push(`Balance: ${context.parsed.y.toFixed(2)}`);
+              
+              if (tradeInfo && tradeInfo.symbol) {
+                const reasonText = decodeReason(tradeInfo.reason);
+                const isTPSL = reasonText === 'Take Profit' || reasonText === 'Stop Loss';
+                const tpslText = isTPSL ? ` (${reasonText === 'Take Profit' ? 'TP' : 'SL'})` : '';
+                
+                lines.push(`${tradeInfo.symbol}: ${tradeInfo.profit.toFixed(2)}${tpslText}`);
+              } else if (tradeInfo && !tradeInfo.symbol) {
+                lines.push(`Transfert: ${tradeInfo.profit.toFixed(2)}`);
+              }
+              
+              return lines;
+            }
+          }
         }
       },
       scales: {
@@ -367,9 +399,9 @@ function renderChart(labels, data) {
     
     if (elements.length > 0) {
       const elementIndex = elements[0].index;
-      const ticket = chartToTableMap[elementIndex];
-      if (ticket) {
-        highlightTableRow(ticket);
+      const tradeInfo = chartToTableMap[elementIndex];
+      if (tradeInfo && tradeInfo.ticket) {
+        highlightTableRow(tradeInfo.ticket);
       }
     }
   });
