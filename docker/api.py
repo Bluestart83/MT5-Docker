@@ -40,6 +40,11 @@ clients = []
 
 log_file_path = "./fxscript.log"
 
+# Définir les constantes manquantes dans votre code
+SYMBOL_FILLING_FOK = 1
+SYMBOL_FILLING_IOC = 2
+SYMBOL_FILLING_RETURN = 4
+
 #logging.basicConfig(
 #    filename=log_file_path,
 #    level=logging.INFO,
@@ -426,6 +431,11 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
     except Exception as e:
         return response_from_exception(e)
     
+# Définir les constantes manquantes dans votre code
+SYMBOL_FILLING_FOK = 1
+SYMBOL_FILLING_IOC = 2
+SYMBOL_FILLING_RETURN = 4
+
 def get_safe_filling_mode(symbol_info) -> int:
     """Détecte automatiquement le meilleur mode de remplissage"""
     if symbol_info is None:
@@ -437,35 +447,32 @@ def get_safe_filling_mode(symbol_info) -> int:
     logging.debug(f"Symbol: {symbol_info.name}")
     logging.debug(f"Execution mode: {execution_mode}")
     logging.debug(f"Filling flags: {filling_flags}")
-    logging.debug(f"Supports FOK: {bool(filling_flags & mt5.SYMBOL_FILLING_FOK)}")
-    logging.debug(f"Supports IOC: {bool(filling_flags & mt5.SYMBOL_FILLING_IOC)}")
-    logging.debug(f"Supports RETURN: {bool(filling_flags & mt5.SYMBOL_FILLING_RETURN)}")
+    logging.debug(f"Supports FOK: {bool(filling_flags & SYMBOL_FILLING_FOK)}")
+    logging.debug(f"Supports IOC: {bool(filling_flags & SYMBOL_FILLING_IOC)}")
+    logging.debug(f"Supports RETURN: {bool(filling_flags & SYMBOL_FILLING_RETURN)}")
     
     # Ordre de préférence selon le type d'exécution
-    if execution_mode == mt5.SYMBOL_TRADE_EXECUTION_MARKET:
-        # Market execution : éviter RETURN
+    if execution_mode == 2:  # Market execution
         preferred_order = [
-            (mt5.SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK),
-            (mt5.SYMBOL_FILLING_IOC, mt5.ORDER_FILLING_IOC),
-            (mt5.SYMBOL_FILLING_RETURN, mt5.ORDER_FILLING_RETURN)
+            (SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK),
+            (SYMBOL_FILLING_IOC, mt5.ORDER_FILLING_IOC),
+            (SYMBOL_FILLING_RETURN, mt5.ORDER_FILLING_RETURN)
         ]
     else:
-        # Instant/Exchange : RETURN en premier
         preferred_order = [
-            (mt5.SYMBOL_FILLING_RETURN, mt5.ORDER_FILLING_RETURN),
-            (mt5.SYMBOL_FILLING_IOC, mt5.ORDER_FILLING_IOC),
-            (mt5.SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK)
+            (SYMBOL_FILLING_RETURN, mt5.ORDER_FILLING_RETURN),
+            (SYMBOL_FILLING_IOC, mt5.ORDER_FILLING_IOC),
+            (SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK)
         ]
     
     # Chercher le premier mode supporté
     for flag, mode in preferred_order:
         if filling_flags & flag:
-            print(f"Selected filling mode: {mode}")
+            logging.debug(f"Selected filling mode: {mode}")
             return mode
     
-    # Fallback (ne devrait jamais arriver)
-    print("Warning: No filling mode found, using RETURN")
-    return mt5.ORDER_FILLING_RETURN
+    logging.debug("Warning: No filling mode found, using FOK")
+    return mt5.ORDER_FILLING_FOK
     
 def _round_price(value: float, digits: int) -> float:
     return round(value, digits)
