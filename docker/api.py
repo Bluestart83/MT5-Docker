@@ -40,10 +40,17 @@ clients = []
 
 log_file_path = "./fxscript.log"
 
+#logging.basicConfig(
+#    filename=log_file_path,
+#    level=logging.INFO,
+#    format="%(asctime)s - %(levelname)s - %(message)s",
+#)
 logging.basicConfig(
-    filename=log_file_path,
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()  # Console/stdout
+    ]
 )
 
 logging.info("Starting api")
@@ -369,6 +376,7 @@ def account_info():
 @app.post("/trade")
 def trade_new(request: OrderRequest):
     #close_all(request.symbol, request.magic, request.deviation)
+    logging.debug("trade_new")
     side = request.side.lower()
     if side not in ("buy", "sell"):
         raise HTTPException(status_code=400, detail="Le champ `side` doit être 'buy' ou 'sell'.")
@@ -380,7 +388,9 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
     try:
          # Choisir un mode valide
         symbol_info = mt5.symbol_info(request.symbol)
+        logging.debug("get_safe_filling_mode++")
         filling_mode = get_safe_filling_mode(symbol_info)
+        logging.debug(f"get_safe_filling_mode--{filling_mode}")
 
         digits = symbol_info.digits
         body = {
@@ -416,19 +426,47 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
     except Exception as e:
         return response_from_exception(e)
     
-def get_safe_filling_mode(info) -> Optional[int]:
-    if info is None:
-        return None
-
-    # Par défaut, retourne le mode défini par le broker
-    mode = info.filling_mode
-
-    # Si en Market Execution, ORDER_FILLING_RETURN est invalide
-    if info.trade_exemode == mt5.SYMBOL_TRADE_EXECUTION_MARKET and mode == mt5.ORDER_FILLING_RETURN:
-        # Essaye IOC
-        return mt5.ORDER_FILLING_IOC
-    return mode
-
+def get_safe_filling_mode(symbol_info) -> int:
+    """Détecte automatiquement le meilleur mode de remplissage"""
+    if symbol_info is None:
+        return mt5.ORDER_FILLING_RETURN
+    
+    filling_flags = symbol_info.filling_mode
+    execution_mode = symbol_info.trade_exemode
+    
+    logging.debug(f"Symbol: {symbol_info.name}")
+    logging.debug(f"Execution mode: {execution_mode}")
+    logging.debug(f"Filling flags: {filling_flags}")
+    logging.debug(f"Supports FOK: {bool(filling_flags & mt5.SYMBOL_FILLING_FOK)}")
+    logging.debug(f"Supports IOC: {bool(filling_flags & mt5.SYMBOL_FILLING_IOC)}")
+    logging.debug(f"Supports RETURN: {bool(filling_flags & mt5.SYMBOL_FILLING_RETURN)}")
+    
+    # Ordre de préférence selon le type d'exécution
+    if execution_mode == mt5.SYMBOL_TRADE_EXECUTION_MARKET:
+        # Market execution : éviter RETURN
+        preferred_order = [
+            (mt5.SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK),
+            (mt5.SYMBOL_FILLING_IOC, mt5.ORDER_FILLING_IOC),
+            (mt5.SYMBOL_FILLING_RETURN, mt5.ORDER_FILLING_RETURN)
+        ]
+    else:
+        # Instant/Exchange : RETURN en premier
+        preferred_order = [
+            (mt5.SYMBOL_FILLING_RETURN, mt5.ORDER_FILLING_RETURN),
+            (mt5.SYMBOL_FILLING_IOC, mt5.ORDER_FILLING_IOC),
+            (mt5.SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK)
+        ]
+    
+    # Chercher le premier mode supporté
+    for flag, mode in preferred_order:
+        if filling_flags & flag:
+            print(f"Selected filling mode: {mode}")
+            return mode
+    
+    # Fallback (ne devrait jamais arriver)
+    print("Warning: No filling mode found, using RETURN")
+    return mt5.ORDER_FILLING_RETURN
+    
 def _round_price(value: float, digits: int) -> float:
     return round(value, digits)
 
