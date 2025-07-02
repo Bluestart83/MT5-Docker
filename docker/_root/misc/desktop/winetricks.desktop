@@ -1,0 +1,20 @@
+#!/usr/bin/env xdg-open
+
+[Desktop Entry]
+Comment=
+Encoding=UTF-8
+Exec=/usr/bin/winetricks
+GenericName=
+Icon=face-smile
+MimeType=
+Name=Wine Tricks
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-Created-By=WINE
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=
