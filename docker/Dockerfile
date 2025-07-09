@@ -5,7 +5,9 @@ FROM msjpq/kde-vnc:focal
 ARG MONO_VER="4.9.4"
 ARG GECKO_VER="2.47.1"
 
-RUN mkdir /_install
+# WINE Prereq
+RUN dpkg --add-architecture i386 && \
+    add-apt-repository -y ppa:cybermax-dexter/sdl2-backport
 
 
 ## All Dependencies Satisfied
