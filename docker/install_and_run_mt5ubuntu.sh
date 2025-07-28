@@ -9,8 +9,8 @@ URL_WEBVIEW="https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice
 winecfg -v=win10
 wineboot -i
 
-#winetricks -q vcrun2015 corefonts
-#winetricks -q webview2
+winetricks -q vcrun2015 corefonts
+winetricks -q webview2
 #cd /root/.wine/drive_c/fx/ && wget -O MicrosoftEdgeWebview2Setup.exe $URL_WEBVIEW
 #/usr/bin/wine64 /root/.wine/drive_c/fx/MicrosoftEdgeWebview2Setup.exe /silent /install
 
