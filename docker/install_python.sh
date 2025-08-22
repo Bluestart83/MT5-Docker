@@ -8,3 +8,5 @@ wine python-3.11.1-amd64.exe AssociateFiles=0 Shortcuts=0 Include_doc=0 Include_
 wine python/python.exe get-pip.py
 wine python/python.exe -m pip install  numpy==1.26.4 MetaTrader5 pandas==2.2.2 fastapi[all]==0.111.0 kazoo==2.10.0 pydantic-core==2.18.2
 
+rm python-3.11.1-amd64.exe
+rm get-pip.py

@@ -100,9 +100,11 @@ for v in dir(mt5):
         symbol, num = tf[0], tf[1:]
         tf_dic[num + symbol.lower()] = int(getattr(mt5, v))
 
+logging.info(f"Starting python script... (20s)")
+time.sleep(20)
 for v in range(10):
+    
     logging.info(f"Starting mt5")
-
     success = mt5.initialize(
         path,
         login=int(os.environ["ACCOUNT"]),
@@ -111,7 +113,7 @@ for v in range(10):
     )
     if not success:
         logging.warning(f"Cannot init mt5: {mt5.last_error()}")
-        time.sleep(10)
+        time.sleep(10*v)
         continue
     else:
         logging.info(f"Starting mt5 done")
