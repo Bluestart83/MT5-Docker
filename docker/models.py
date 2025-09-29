@@ -49,3 +49,23 @@ class ModifyOrderRequest(BaseModel):
     deviation: Optional[int] = 20
     magic: Optional[int] = 0
     comment: Optional[str] = "modify sl/tp"
+
+class TradingViewWebhook(BaseModel):
+    """Modèle pour recevoir les alertes de TradingView"""
+    symbol: str
+    action: str  # "buy", "sell", "buylimit", "selllimit", "buystop", "sellstop", "closelong", "closeshort", "closeall", "closepending", "modify", "start_trailing", "cancel_trailing"
+    lots: float = 0.01
+    sl: Optional[float] = None
+    tp: Optional[float] = None
+    slpips: Optional[int] = None
+    tppips: Optional[int] = None
+    magic: int = None
+    comment: str = ""
+    deviation: int = 10
+    price: Optional[float] = None
+    max_lot: Optional[float] = None  # Limite spécifique pour ce signal
+    closeoppositesignal: bool = False
+    timestamp: Optional[str] = None
+    interval: Optional[str] = None
+    trail_points: Optional[float] = None  # Distance du trailing en points
+    trail_step: Optional[float] = None    # Step minimum du trailing
