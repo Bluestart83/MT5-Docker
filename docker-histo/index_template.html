@@ -195,35 +195,7 @@
             gap: 8px;
         }
 
-        /* Grille hebdomadaire scrollable */
-        .week-scroll-container {
-            max-height: 500px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .week-scroll-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .week-scroll-container::-webkit-scrollbar-track {
-            background: #1a1a1a;
-            border-radius: 4px;
-        }
-
-        .week-scroll-container::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 4px;
-        }
-
-        .week-row {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr) 120px;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-
+        /* Grille hebdomadaire */
         .week-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -231,15 +203,6 @@
         }
 
         .day-header {
-            text-align: center;
-            font-size: 11px;
-            color: #888;
-            padding: 8px;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .week-total {
             text-align: center;
             font-size: 11px;
             color: #888;
@@ -276,41 +239,6 @@
         .day-cell.negative {
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.25));
             border-color: rgba(239, 68, 68, 0.4);
-        }
-
-        .week-summary {
-            padding: 10px;
-            border-radius: 12px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            transition: all 0.3s;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        .week-summary:hover {
-            transform: scale(1.05);
-        }
-
-        .week-summary.positive {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.25));
-            border-color: rgba(16, 185, 129, 0.4);
-        }
-
-        .week-summary.negative {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.25));
-            border-color: rgba(239, 68, 68, 0.4);
-        }
-
-        .week-value {
-            font-size: 16px;
-            font-weight: 700;
-        }
-
-        .week-trades {
-            font-size: 9px;
-            color: #666;
-            margin-top: 4px;
         }
 
         .day-label {
@@ -383,60 +311,6 @@
             font-size: 11px;
             margin-top: 4px;
             opacity: 0.8;
-        }
-
-        /* Barres horizontales pour stratégies et symboles */
-        .strategy-row, .symbol-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            gap: 10px;
-        }
-
-        .strategy-label, .symbol-label {
-            min-width: 200px;
-            font-size: 13px;
-            color: #fff;
-            font-weight: 500;
-        }
-
-        .strategy-bar-container, .symbol-bar-container {
-            flex: 1;
-            height: 30px;
-            background: #2a2a2a;
-            border-radius: 8px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid #444;
-        }
-
-        .strategy-bar, .symbol-bar {
-            height: 100%;
-            transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 10px;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 8px;
-        }
-
-        .strategy-bar.positive, .symbol-bar.positive {
-            background: linear-gradient(90deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.6));
-            color: #10b981;
-        }
-
-        .strategy-bar.negative, .symbol-bar.negative {
-            background: linear-gradient(90deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.6));
-            color: #ef4444;
-        }
-
-        .strategy-stats, .symbol-stats {
-            min-width: 150px;
-            text-align: right;
-            font-size: 11px;
-            color: #888;
         }
 
         /* Graphiques */
@@ -517,11 +391,6 @@
             padding: 20px;
             overflow: hidden;
         }
-
-		tr.open-trade {
-			background-color: #fef9c3;
-			font-style: italic;
-		}
 
         .table-wrapper {
             max-height: 400px;
@@ -631,16 +500,14 @@
                     <!-- Options will be populated dynamically -->
                 </select>
                 <button class="btn btn-secondary" onclick="configureServers()">⚙️ Config</button>
+                <button class="btn" onclick="loadData()">🔄 Actualiser</button>
             </div>
         </div>
 
         <div class="filters">
             <div class="filter-group">
                 <label class="filter-label">Symbol</label>
-                <select class="filter-input" id="symbolFilter" style="width: 180px;">
-                    <option value="">Tous</option>
-                    <!-- Options will be populated dynamically -->
-                </select>
+                <input type="text" class="filter-input" id="symbolFilter" placeholder="EURUSD">
             </div>
             <div class="filter-group">
                 <label class="filter-label">Magic Number</label>
@@ -705,7 +572,7 @@
         <div class="performance-grids">
             <div class="grid-container">
                 <div class="grid-title">📅 Performance Hebdomadaire</div>
-                <div class="week-row">
+                <div class="week-grid">
                     <div class="day-header">Lun</div>
                     <div class="day-header">Mar</div>
                     <div class="day-header">Mer</div>
@@ -713,10 +580,9 @@
                     <div class="day-header">Ven</div>
                     <div class="day-header">Sam</div>
                     <div class="day-header">Dim</div>
-                    <div class="week-total">Semaine</div>
                 </div>
-                <div class="week-scroll-container" id="weekScrollContainer">
-                    <!-- Weeks will be populated dynamically -->
+                <div class="week-grid" id="weekGrid">
+                    <!-- Days will be populated dynamically -->
                 </div>
             </div>
 
@@ -725,20 +591,6 @@
                 <div class="month-grid" id="monthGrid">
                     <!-- Months will be populated dynamically -->
                 </div>
-            </div>
-        </div>
-
-        <div class="grid-container" style="margin-bottom: 30px;">
-            <div class="grid-title">🎯 Performance par Stratégie (Magic Number)</div>
-            <div id="magicGrid">
-                <!-- Magic numbers will be populated dynamically -->
-            </div>
-        </div>
-
-        <div class="grid-container" style="margin-bottom: 30px;">
-            <div class="grid-title">💱 Performance par Symbole</div>
-            <div id="symbolGrid">
-                <!-- Symbols will be populated dynamically -->
             </div>
         </div>
 
@@ -764,17 +616,16 @@
                 <table id="tradesTable">
                     <thead>
                         <tr>
-							<th>Date&nbsp;Open</th>
-							<th>Date&nbsp;Close</th>
-							<th>Symbol</th>
-							<th>Side</th>
-							<th>Volume</th>
-							<th>Entry&nbsp;Price</th>
-							<th>Close&nbsp;Price</th>
-							<th>P&L</th>
-							<th>Magic</th>
-							<th>Comment</th>
-							<th>Comment&nbsp;Close</th>
+                            <th>Date</th>
+                            <th>Symbol</th>
+                            <th>Type</th>
+                            <th>Volume</th>
+                            <th>Prix</th>
+                            <th>P&L</th>
+                            <th>Commission</th>
+                            <th>Swap</th>
+                            <th>Magic</th>
+                            <th>Comment</th>
                         </tr>
                     </thead>
                     <tbody id="tradesBody">
@@ -814,18 +665,6 @@
             8: "Partial Close", 9: "Position Modified", 10: "Pending Cancelled" 
         };
 
-		const tradeType = {
-			0: 'BUY',
-			1: 'SELL',
-			2: 'BUY LIMIT',
-			3: 'SELL LIMIT',
-			4: 'BUY STOP',
-			5: 'SELL STOP',
-			6: 'BUY STOP LIMIT',
-			7: 'SELL STOP LIMIT',
-			8: 'CLOSE BY'
-		};
-
         // Initialisation
         document.addEventListener('DOMContentLoaded', () => {
             loadConfigFromURL();
@@ -837,16 +676,21 @@
         });
 
         function loadConfigFromURL() {
+            // Charger la configuration depuis les variables d'environnement injectées ou les paramètres URL
+            
+            // 1. Vérifier si la configuration a été injectée par Docker
             if (typeof window.SERVERS_CONFIG !== 'undefined') {
                 servers = window.SERVERS_CONFIG.split(',').map(s => {
                     const parts = s.split(':');
                     if (parts.length === 3) {
+                        // Format: name:port:apiKey
                         return { 
                             name: parts[0].trim(), 
                             port: parseInt(parts[1].trim()),
                             apiKey: parts[2].trim()
                         };
                     } else if (parts.length === 2) {
+                        // Format: name:port (sans API key)
                         return { 
                             name: parts[0].trim(), 
                             port: parseInt(parts[1].trim()),
@@ -866,8 +710,10 @@
                 localStorage.setItem('magicNumbers', JSON.stringify(magicNumbers));
             }
             
+            // 2. Sinon, charger depuis les paramètres URL
             const urlParams = new URLSearchParams(window.location.search);
             
+            // Configuration des serveurs depuis URL: ?servers=Dev:8000:apikey1,Prod:8001:apikey2
             const serversParam = urlParams.get('servers');
             if (serversParam) {
                 servers = serversParam.split(',').map(s => {
@@ -890,6 +736,7 @@
                 localStorage.setItem('tradingServers', JSON.stringify(servers));
             }
             
+            // Configuration des magic numbers depuis URL: ?magic=0:Manuel,169511:EA_Gold,169512:EA_Scalper
             const magicParam = urlParams.get('magic');
             if (magicParam) {
                 magicNumbers = magicParam.split(',').map(m => {
@@ -899,10 +746,12 @@
                 localStorage.setItem('magicNumbers', JSON.stringify(magicNumbers));
             }
             
+            // 3. S'assurer qu'on a toujours au moins un serveur et le magic 0
             if (servers.length === 0) {
                 servers = [{ name: 'MT5', port: 8000, apiKey: '' }];
             }
             
+            // Migrer les anciennes configurations sans apiKey
             servers = servers.map(s => {
                 if (!s.hasOwnProperty('apiKey')) {
                     return { ...s, apiKey: '' };
@@ -910,6 +759,7 @@
                 return s;
             });
             
+            // S'assurer qu'on a toujours au moins le magic 0 (Manuel)
             if (!magicNumbers.find(m => m.value === 0)) {
                 magicNumbers.unshift({ value: 0, name: 'Manuel' });
             }
@@ -938,8 +788,10 @@
 
         function populateMagicSelect() {
             const select = document.getElementById('magicFilter');
+            // Garder l'option "Tous"
             const allOption = '<option value="">Tous</option>';
             
+            // Obtenir les magic numbers uniques depuis les données si disponibles
             const uniqueMagics = new Set();
             if (allData.length > 0) {
                 allData.forEach(d => {
@@ -949,40 +801,22 @@
                 });
             }
             
+            // Créer les options
             let options = allOption;
             
+            // Ajouter les magic numbers configurés
             magicNumbers.forEach(m => {
                 options += `<option value="${m.value}">${m.name} (${m.value})</option>`;
-                uniqueMagics.delete(m.value);
+                uniqueMagics.delete(m.value); // Retirer des uniques car déjà ajouté
             });
             
+            // Ajouter les magic numbers non configurés trouvés dans les données
             if (uniqueMagics.size > 0) {
                 options += '<option disabled>──────────</option>';
                 Array.from(uniqueMagics).sort((a, b) => a - b).forEach(magic => {
                     options += `<option value="${magic}">Magic ${magic}</option>`;
                 });
             }
-            
-            select.innerHTML = options;
-        }
-
-        function populateSymbolSelect() {
-            const select = document.getElementById('symbolFilter');
-            const allOption = '<option value="">Tous</option>';
-            
-            const uniqueSymbols = new Set();
-            if (allData.length > 0) {
-                allData.forEach(d => {
-                    if (d.symbol && d.symbol.trim() !== "") {
-                        uniqueSymbols.add(d.symbol);
-                    }
-                });
-            }
-            
-            let options = allOption;
-            Array.from(uniqueSymbols).sort().forEach(symbol => {
-                options += `<option value="${symbol}">${symbol}</option>`;
-            });
             
             select.innerHTML = options;
         }
@@ -1009,6 +843,7 @@
                 lines.forEach(line => {
                     if (line.includes(':')) {
                         const parts = line.split(':');
+                        // Si le premier élément est un nombre pur, c'est un magic number
                         if (/^\d+$/.test(parts[0].trim())) {
                             magicLines.push(line);
                         } else {
@@ -1047,19 +882,12 @@
             }
         }
 
-		function formatLocalDate(date) {
-			const yyyy = date.getFullYear();
-			const mm = String(date.getMonth() + 1).padStart(2, '0');
-			const dd = String(date.getDate()).padStart(2, '0');
-			return `${yyyy}-${mm}-${dd}`;
-		}
-
         function setDefaultDates() {
             const now = new Date();
-            const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
             
-			document.getElementById('dateFrom').value = formatLocalDate(oneYearAgo);
-			document.getElementById('dateTo').value = formatLocalDate(now);
+            document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = now.toISOString().split('T')[0];
         }
 
         async function makeRequest(url, serverIndex) {
@@ -1080,10 +908,13 @@
             const baseUrl = `http://localhost:${port}`;
             
             try {
+                // Show loading state
                 document.getElementById('totalPnL').innerHTML = '<span class="loading"></span>';
                 
+                // Update API key status
                 updateApiKeyStatus();
                 
+                // Load account info
                 try {
                     const accountResponse = await makeRequest(`${baseUrl}/account/info`, serverIndex);
                     if (accountResponse.ok) {
@@ -1097,6 +928,7 @@
                     console.error('Error loading account info:', e);
                 }
                 
+                // Load deals history
                 const dealsResponse = await makeRequest(`${baseUrl}/history-deals`, serverIndex);
                 if (!dealsResponse.ok) {
                     if (dealsResponse.status === 401) {
@@ -1108,8 +940,8 @@
                 const dealsData = await dealsResponse.json();
                 allData = dealsData.data || [];
                 
+                // Mettre à jour la liste des magic numbers avec ceux trouvés dans les données
                 populateMagicSelect();
-                populateSymbolSelect();
                 
                 applyFilters();
                 
@@ -1119,13 +951,11 @@
             }
         }
 
+        // Ajouter un event listener pour mettre à jour le statut de l'API key lors du changement de serveur
         document.addEventListener('DOMContentLoaded', () => {
             const serverSelect = document.getElementById('serverSelect');
             if (serverSelect) {
-                serverSelect.addEventListener('change', () => {
-                    updateApiKeyStatus();
-                    loadData(); // Charger automatiquement les données lors du changement de serveur
-                });
+                serverSelect.addEventListener('change', updateApiKeyStatus);
             }
         });
 
@@ -1142,12 +972,13 @@
         }
 
         function applyFilters() {
-            const symbol = document.getElementById('symbolFilter').value;
+            const symbol = document.getElementById('symbolFilter').value.toUpperCase();
             const magic = document.getElementById('magicFilter').value;
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
             
             filteredData = allData.filter(d => {
+                // Exclure les dépôts/retraits (pas de symbol)
                 if (!d.symbol || d.symbol.trim() === "") return false;
                 
                 if (symbol && d.symbol !== symbol) return false;
@@ -1163,8 +994,6 @@
             updateMetrics();
             updateWeekGrid();
             updateMonthGrid();
-            updateMagicGrid();
-            updateSymbolGrid();
             updateCharts();
             updateTable();
         }
@@ -1189,6 +1018,7 @@
             let totalCommission = 0;
             let totalSwap = 0;
             
+            // Trier par date
             const sortedTrades = [...trades].sort((a, b) => a.time - b.time);
             
             sortedTrades.forEach(trade => {
@@ -1220,6 +1050,7 @@
             const profitFactor = totalLoss > 0 ? (totalProfit / totalLoss) : totalProfit > 0 ? 999 : 0;
             const recoveryFactor = maxDrawdown > 0 ? (Math.abs(totalPnL) / maxDrawdown) : 0;
             
+            // Update UI
             document.getElementById('totalPnL').innerHTML = formatCurrency(totalPnL);
             document.getElementById('totalPnL').className = `metric-value ${totalPnL >= 0 ? 'positive' : 'negative'}`;
             
@@ -1239,81 +1070,38 @@
         }
 
         function updateWeekGrid() {
-            const container = document.getElementById('weekScrollContainer');
+            const container = document.getElementById('weekGrid');
             container.innerHTML = '';
             
-            // Grouper par semaine
-            const weeklyData = {};
-            
-            filteredData.forEach(trade => {
-                const date = new Date(trade.time * 1000);
-                const monday = new Date(date);
-                monday.setDate(date.getDate() - (date.getDay() === 0 ? 6 : date.getDay() - 1));
-                monday.setHours(0, 0, 0, 0);
-                
-                const weekKey = monday.toISOString().split('T')[0];
-                
-                if (!weeklyData[weekKey]) {
-                    weeklyData[weekKey] = {
-                        days: {},
-                        totalProfit: 0,
-                        totalTrades: 0,
-                        date: monday
-                    };
-                }
-            });
-            
-            // Remplir les jours pour chaque semaine
-            filteredData.forEach(trade => {
-                const date = new Date(trade.time * 1000);
-                const monday = new Date(date);
-                monday.setDate(date.getDate() - (date.getDay() === 0 ? 6 : date.getDay() - 1));
-                monday.setHours(0, 0, 0, 0);
-                
-                const weekKey = monday.toISOString().split('T')[0];
-                const dayKey = date.toDateString();
-                
-                if (!weeklyData[weekKey].days[dayKey]) {
-                    weeklyData[weekKey].days[dayKey] = {
-                        profit: 0,
-                        trades: 0,
-                        date: new Date(date)
-                    };
-                }
-                
-                weeklyData[weekKey].days[dayKey].profit += trade.profit;
-                weeklyData[weekKey].days[dayKey].trades++;
-                weeklyData[weekKey].totalProfit += trade.profit;
-                weeklyData[weekKey].totalTrades++;
-            });
-            
-            // Trier par date décroissante
-            const sortedWeeks = Object.entries(weeklyData)
-                .sort((a, b) => b[1].date - a[1].date);
-            
+            // Obtenir les 2 dernières semaines
             const now = new Date();
+            const weeks = [];
             
-            sortedWeeks.forEach(([weekKey, weekData]) => {
-                const weekRow = document.createElement('div');
-                weekRow.className = 'week-row';
+            for (let w = 1; w >= 0; w--) {
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - now.getDay() + 1 - (w * 7));
+                weekStart.setHours(0, 0, 0, 0);
                 
-                // Créer les 7 jours
                 for (let i = 0; i < 7; i++) {
-                    const currentDate = new Date(weekData.date);
-                    currentDate.setDate(weekData.date.getDate() + i);
+                    const currentDate = new Date(weekStart);
+                    currentDate.setDate(weekStart.getDate() + i);
                     
-                    const dayKey = currentDate.toDateString();
-                    const dayData = weekData.days[dayKey] || { profit: 0, trades: 0 };
+                    const dayTrades = filteredData.filter(d => {
+                        const tradeDate = new Date(d.time * 1000);
+                        return tradeDate.toDateString() === currentDate.toDateString();
+                    });
                     
+                    const dayProfit = dayTrades.reduce((sum, t) => sum + (t.profit || 0), 0);
                     const dayPercent = accountInfo && accountInfo.balance && accountInfo.balance > 0 ? 
-                        (dayData.profit / accountInfo.balance * 100) : 0;
+                        (dayProfit / accountInfo.balance * 100) : 0;
                     
                     const dayCell = document.createElement('div');
-                    dayCell.className = `day-cell ${dayData.profit > 0 ? 'positive' : dayData.profit < 0 ? 'negative' : ''}`;
+                    dayCell.className = `day-cell ${dayProfit > 0 ? 'positive' : dayProfit < 0 ? 'negative' : ''}`;
                     dayCell.style.cursor = 'pointer';
                     
+                    // Ajouter l'événement de clic pour filtrer ce jour
                     dayCell.addEventListener('click', () => {
-                        const dateStr = formatLocalDate(currentDate);
+                        const dateStr = currentDate.toISOString().split('T')[0];
                         document.getElementById('dateFrom').value = dateStr;
                         document.getElementById('dateTo').value = dateStr;
                         applyFilters();
@@ -1323,52 +1111,24 @@
                     
                     dayCell.innerHTML = `
                         <div class="day-label">${currentDate.getDate()}${isToday ? ' 📍' : ''}</div>
-                        <div class="day-value ${dayData.profit >= 0 ? 'positive' : 'negative'}">
-                            ${dayData.profit !== 0 ? formatCurrency(dayData.profit) : '-'}
+                        <div class="day-value ${dayProfit >= 0 ? 'positive' : 'negative'}">
+                            ${dayProfit !== 0 ? formatCurrency(dayProfit) : '-'}
                         </div>
-                        ${dayData.profit !== 0 && !isNaN(dayPercent) && isFinite(dayPercent) ? 
+                        ${dayProfit !== 0 && !isNaN(dayPercent) && isFinite(dayPercent) ? 
                             `<div class="day-percent">${dayPercent.toFixed(2)}%</div>` : ''}
-                        <div class="day-trades">${dayData.trades} trade${dayData.trades > 1 ? 's' : ''}</div>
+                        <div class="day-trades">${dayTrades.length} trade${dayTrades.length > 1 ? 's' : ''}</div>
                     `;
                     
-                    weekRow.appendChild(dayCell);
+                    container.appendChild(dayCell);
                 }
-                
-                // Ajouter le résumé de la semaine
-                const weekSummary = document.createElement('div');
-                weekSummary.className = `week-summary ${weekData.totalProfit > 0 ? 'positive' : weekData.totalProfit < 0 ? 'negative' : ''}`;
-                weekSummary.style.cursor = 'pointer';
-                
-                const endOfWeek = new Date(weekData.date);
-                endOfWeek.setDate(weekData.date.getDate() + 6);
-                
-                weekSummary.addEventListener('click', () => {
-                    document.getElementById('dateFrom').value = formatLocalDate(weekData.date);
-                    document.getElementById('dateTo').value = formatLocalDate(endOfWeek);
-                    applyFilters();
-                });
-                
-                const weekDate = `${weekData.date.getDate()}/${weekData.date.getMonth() + 1}/${weekData.date.getFullYear()}`;
-                
-                weekSummary.innerHTML = `
-                    <div style="font-size: 10px; color: #fff; margin-bottom: 4px; font-weight: 500;">
-                        ${weekDate}
-                    </div>
-                    <div class="week-value ${weekData.totalProfit >= 0 ? 'positive' : 'negative'}">
-                        ${formatCurrency(weekData.totalProfit)}
-                    </div>
-                    <div class="week-trades">${weekData.totalTrades} trades</div>
-                `;
-                
-                weekRow.appendChild(weekSummary);
-                container.appendChild(weekRow);
-            });
+            }
         }
 
         function updateMonthGrid() {
             const container = document.getElementById('monthGrid');
             container.innerHTML = '';
             
+            // Grouper par mois
             const monthlyData = {};
             const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
             
@@ -1389,6 +1149,7 @@
                 monthlyData[monthKey].trades++;
             });
             
+            // Afficher les 12 derniers mois
             const now = new Date();
             for (let i = 11; i >= 0; i--) {
                 const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -1402,13 +1163,17 @@
                 monthCell.className = `month-cell ${data.profit > 0 ? 'positive' : data.profit < 0 ? 'negative' : ''}`;
                 monthCell.style.cursor = 'pointer';
                 
+                // Ajouter l'événement de clic pour filtrer ce mois
                 monthCell.addEventListener('click', () => {
+                    // Calculer les dates du mois
                     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
                     const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
                     
-                    document.getElementById('dateFrom').value = formatLocalDate(firstDay);
-					document.getElementById('dateTo').value = formatLocalDate(lastDay);
+                    // Mettre à jour les filtres
+                    document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
+                    document.getElementById('dateTo').value = lastDay.toISOString().split('T')[0];
                     
+                    // Appliquer les filtres
                     applyFilters();
                 });
                 
@@ -1425,115 +1190,6 @@
             }
         }
 
-        function updateMagicGrid() {
-            const container = document.getElementById('magicGrid');
-            container.innerHTML = '';
-            
-            const magicData = {};
-            
-            filteredData.forEach(trade => {
-                const magic = trade.magic || 0;
-                if (!magicData[magic]) {
-                    magicData[magic] = {
-                        profit: 0,
-                        trades: 0,
-                        wins: 0,
-                        losses: 0
-                    };
-                }
-                
-                magicData[magic].profit += trade.profit;
-                magicData[magic].trades++;
-                if (trade.profit > 0) magicData[magic].wins++;
-                if (trade.profit < 0) magicData[magic].losses++;
-            });
-            
-            const sortedMagics = Object.entries(magicData)
-                .sort((a, b) => b[1].profit - a[1].profit);
-            
-            const maxProfit = Math.max(...sortedMagics.map(([_, data]) => Math.abs(data.profit)));
-            
-            sortedMagics.forEach(([magic, data]) => {
-                const winRate = data.trades > 0 ? (data.wins / data.trades * 100) : 0;
-                const magicConfig = magicNumbers.find(m => m.value === parseInt(magic));
-                const magicName = magicConfig ? magicConfig.name : (magic === '0' ? 'Manuel' : `Magic ${magic}`);
-                
-                const strategyRow = document.createElement('div');
-                strategyRow.className = 'strategy-row';
-                
-                const barWidth = maxProfit > 0 ? (Math.abs(data.profit) / maxProfit * 100) : 0;
-                
-                strategyRow.innerHTML = `
-                    <div class="strategy-label">${magicName} (${magic})</div>
-                    <div class="strategy-bar-container">
-                        <div class="strategy-bar ${data.profit >= 0 ? 'positive' : 'negative'}" 
-                             style="width: ${barWidth}%; cursor: pointer;"
-                             onclick="document.getElementById('magicFilter').value='${magic}'; applyFilters();">
-                            ${formatCurrency(data.profit)}
-                        </div>
-                    </div>
-                    <div class="strategy-stats">
-                        ${data.trades} trades | WR: ${winRate.toFixed(0)}%
-                    </div>
-                `;
-                
-                container.appendChild(strategyRow);
-            });
-        }
-
-        function updateSymbolGrid() {
-            const container = document.getElementById('symbolGrid');
-            container.innerHTML = '';
-            
-            const symbolData = {};
-            
-            filteredData.forEach(trade => {
-                if (!symbolData[trade.symbol]) {
-                    symbolData[trade.symbol] = {
-                        profit: 0,
-                        trades: 0,
-                        wins: 0,
-                        losses: 0
-                    };
-                }
-                
-                symbolData[trade.symbol].profit += trade.profit;
-                symbolData[trade.symbol].trades++;
-                if (trade.profit > 0) symbolData[trade.symbol].wins++;
-                if (trade.profit < 0) symbolData[trade.symbol].losses++;
-            });
-            
-            const sortedSymbols = Object.entries(symbolData)
-                .sort((a, b) => b[1].profit - a[1].profit);
-            
-            const maxProfit = Math.max(...sortedSymbols.map(([_, data]) => Math.abs(data.profit)));
-            
-            sortedSymbols.forEach(([symbol, data]) => {
-                const winRate = data.trades > 0 ? (data.wins / data.trades * 100) : 0;
-                
-                const symbolRow = document.createElement('div');
-                symbolRow.className = 'symbol-row';
-                
-                const barWidth = maxProfit > 0 ? (Math.abs(data.profit) / maxProfit * 100) : 0;
-                
-                symbolRow.innerHTML = `
-                    <div class="symbol-label">${symbol}</div>
-                    <div class="symbol-bar-container">
-                        <div class="symbol-bar ${data.profit >= 0 ? 'positive' : 'negative'}" 
-                             style="width: ${barWidth}%; cursor: pointer;"
-                             onclick="document.getElementById('symbolFilter').value='${symbol}'; applyFilters();">
-                            ${formatCurrency(data.profit)}
-                        </div>
-                    </div>
-                    <div class="symbol-stats">
-                        ${data.trades} trades | WR: ${winRate.toFixed(0)}%
-                    </div>
-                `;
-                
-                container.appendChild(symbolRow);
-            });
-        }
-
         function updateCharts() {
             updateDailyChart();
             updateDayOfWeekChart();
@@ -1543,12 +1199,14 @@
         function updateDailyChart() {
             const ctx = document.getElementById('dailyChart').getContext('2d');
             
+            // Grouper par jour
             const dailyData = {};
             filteredData.forEach(trade => {
                 const date = new Date(trade.time * 1000).toLocaleDateString();
                 dailyData[date] = (dailyData[date] || 0) + trade.profit;
             });
             
+            // Limiter aux 30 derniers jours
             const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b)).slice(-30);
             
             if (dailyChart) dailyChart.destroy();
@@ -1740,50 +1398,48 @@
         }
 
         function updateTable() {
-			const tbody = document.getElementById('tradesBody');
-			const sortedTrades = [...filteredData].sort((a, b) => {
-				const ta = a.time_close || a.time_open || 0;
-				const tb = b.time_close || b.time_open || 0;
-				return tb - ta;
-			});
-
-			tbody.innerHTML = sortedTrades.slice(0, 100).map(trade => {
-				const dateOpen = trade.time_open
-					? new Date(trade.time_open * 1000).toLocaleString()
-					: '-';
-				const dateClose = trade.time_close
-					? new Date(trade.time_close * 1000).toLocaleString()
-					: '-';
-
-				const profitClass = trade.profit >= 0 ? 'positive' : 'negative';
-				const direction = tradeType[trade.type] || '-';
-				const directionClass = direction.includes('SELL') ? 'sell' : 'buy';
-				const isOpen = (trade.status || 'CLOSED') === 'OPEN';
-
-				const magicConfig = magicNumbers.find(m => m.value === trade.magic);
-				const magicDisplay = magicConfig
-					? `${magicConfig.name} (${trade.magic})`
-					: trade.magic === 0
-						? 'Manuel (0)'
-						: trade.magic || '-';
-
-				return `
-					<tr data-status="${isOpen ? 'open' : 'closed'}" class="${isOpen ? 'open-trade' : ''}">
-						<td>${dateOpen}</td>
-						<td>${dateClose}</td>
-						<td>${trade.symbol || '-'}</td>
-						<td class="${trade.side === 'SELL' ? 'sell' : 'buy'}">${trade.side}</td>
-						<td>${trade.volume || '-'}</td>
-						<td>${trade.entry_price ? trade.entry_price.toFixed(3) : '-'}</td>
-						<td>${trade.close_price ? trade.close_price.toFixed(3) : '-'}</td>
-						<td class="${profitClass}">${formatCurrency(trade.profit || 0)}</td>
-						<td>${magicDisplay}</td>
-						<td>${trade.comment || '-'}</td>
-						<td>${trade.comment_close || '-'}</td>
-					</tr>
-				`;
-			}).join('');
-		}
+            const tbody = document.getElementById('tradesBody');
+            const sortedTrades = [...filteredData].sort((a, b) => b.time - a.time);
+            
+            tbody.innerHTML = sortedTrades.slice(0, 100).map(trade => {
+                const date = new Date(trade.time * 1000);
+                const typeText = typeMap[trade.type] || trade.type;
+                const profitClass = trade.profit >= 0 ? 'positive' : 'negative';
+                
+                // Trouver le nom du magic number s'il est configuré
+                const magicConfig = magicNumbers.find(m => m.value === trade.magic);
+                let magicDisplay;
+                
+                if (trade.magic === 0) {
+                    // Toujours afficher "Manuel" pour 0
+                    magicDisplay = 'Manuel (0)';
+                } else if (magicConfig) {
+                    // Si configuré, afficher le nom avec le numéro
+                    magicDisplay = `${magicConfig.name} (${trade.magic})`;
+                } else if (trade.magic) {
+                    // Si non configuré mais présent, afficher juste le numéro
+                    magicDisplay = trade.magic;
+                } else {
+                    // Si pas de magic, afficher un tiret
+                    magicDisplay = '-';
+                }
+                
+                return `
+                    <tr>
+                        <td>${date.toLocaleString()}</td>
+                        <td>${trade.symbol}</td>
+                        <td>${typeText}</td>
+                        <td>${trade.volume}</td>
+                        <td>${trade.price ? trade.price.toFixed(5) : '-'}</td>
+                        <td class="${profitClass}">${formatCurrency(trade.profit)}</td>
+                        <td>${formatCurrency(trade.commission || 0)}</td>
+                        <td>${formatCurrency(trade.swap || 0)}</td>
+                        <td>${magicDisplay}</td>
+                        <td>${trade.comment || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
         function formatCurrency(value) {
             const formatted = Math.abs(value).toFixed(2);
