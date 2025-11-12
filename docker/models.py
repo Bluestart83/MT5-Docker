@@ -54,6 +54,7 @@ class TradingViewWebhook(BaseModel):
     """Modèle pour recevoir les alertes de TradingView"""
     symbol: str
     action: str  # "buy", "sell", "buylimit", "selllimit", "buystop", "sellstop", "closelong", "closeshort", "closeall", "closepending", "modify", "start_trailing", "cancel_trailing"
+    interval:str
     lots: float = 0.01
     sl: Optional[float] = None
     tp: Optional[float] = None
@@ -66,6 +67,6 @@ class TradingViewWebhook(BaseModel):
     max_lot: Optional[float] = None  # Limite spécifique pour ce signal
     closeoppositesignal: bool = False
     timestamp: Optional[str] = None
-    interval: Optional[str] = None
     trail_points: Optional[float] = None  # Distance du trailing en points
     trail_step: Optional[float] = None    # Step minimum du trailing
+    trigger_price: Optional[float] = None  # Prix d'activation du trailing (optionnel)

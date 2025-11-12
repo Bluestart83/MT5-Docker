@@ -31,8 +31,8 @@ from models import (
 #MT5_EXEC = "/root/.wine/drive_c/Program Files/MetaTrader 5 IC Markets Global/terminal64.exe"
 MT5_EXEC = "/root/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe"
 
-# Ajoute cette variable en haut de ton fichier avec les autres configs
-MAX_LOT = float(os.environ.get("MAX_LOT", "9999.0"))  # Taille max absolue du serveur
+# Add this variable at the top of your file with other configs
+MAX_LOT = float(os.environ.get("MAX_LOT", "9999.0"))  # Absolute max size from server
 MAX_INIT_RETRIES = 10
 INIT_RETRY_DELAY = 10
 
@@ -50,11 +50,11 @@ mt5_initialized = False
 mt5_lock = threading.Lock()
 mt5_init_attempts = 0
 
-# Définir les constantes manquantes dans votre code
+# Define missing constants in your code
 SYMBOL_FILLING_FOK = 1
 SYMBOL_FILLING_IOC = 2
 SYMBOL_FILLING_RETURN = 4
-FORCE_ACCOUNT_SWITCH = os.environ.get("FORCE_ACCOUNT_SWITCH", "false").lower() == "true"  # Par défaut: true
+FORCE_ACCOUNT_SWITCH = os.environ.get("FORCE_ACCOUNT_SWITCH", "false").lower() == "true"  # Default: false
 
 log_file_path = "./fxscript.log"
 #logging.basicConfig(
@@ -93,29 +93,29 @@ for v in dir(mt5):
 logging.info(f"API - Starting python script... (20s)")
 time.sleep(20)
 
-# Fonction pour vérifier si MT5 est connecté
+# Function to check if MT5 is connected
 def check_mt5_connection():
-    """Vérifie rapidement si MT5 est connecté"""
+    """Quickly checks if MT5 is connected"""
     try:
         account_info = mt5.account_info()
         return account_info is not None
     except:
         return False
 
-# Fonction d'initialisation/reconnexion
+# Initialization/reconnection function
 def initialize_mt5():
-    """Initialise ou reconnecte MT5"""
+    """Initializes or reconnects MT5"""
     max_retries = 10
     
     for attempt in range(max_retries):
         logging.info(f"API - Starting mt5 (attempt {attempt + 1}/{max_retries})")
         
-        # D'abord vérifier si déjà connecté
+        # First check if already connected
         if check_mt5_connection():
             logging.info(f"API - MT5 already connected")
             return True
         
-        # Si plusieurs échecs, tenter de tuer le processus MT5
+        # If multiple failures, try to kill the MT5 process
         if attempt > 2:
             try:
                 logging.warning("API - Attempting to kill stuck MT5 process")
@@ -124,13 +124,13 @@ def initialize_mt5():
             except Exception as e:
                 logging.warning(f"API - Could not kill MT5 process: {e}")
         
-        # Sinon, initialiser
+        # Otherwise, initialize
         success = mt5.initialize(
             path,
             login=int(os.environ["ACCOUNT"]),
             password=os.environ["PASSWORD"],
             server=os.environ["SERVER"],
-            timeout=120000  # 2 minute pour le login
+            timeout=120000  # 2 minutes for login
         )
         
         if not success:
@@ -138,8 +138,8 @@ def initialize_mt5():
             time.sleep(30 * (attempt + 1))
             continue
         
-        # Vérifier que ça marche vraiment
-        time.sleep(5)  # Attendre un peu que la connexion se stabilise
+        # Check that it really works
+        time.sleep(5)  # Wait a bit for the connection to stabilize
         if check_mt5_connection():
             account_info = mt5.account_info()
             logging.info(f"API - MT5 connected successfully!")
@@ -151,38 +151,38 @@ def initialize_mt5():
     
     return False
 
-# Initialisation au démarrage
+# Startup initialization
 if not initialize_mt5():
     logging.error("API - Failed to initialize MT5 after all attempts")
     logging.error("API - EXITING - MT5 will restart the script")
-    exit(1)  # Terminer le script pour que MT5 le relance
+    exit(1)  # Terminate the script so MT5 restarts it
 
-# Fonction pour s'assurer que MT5 est connecté avant chaque opération
+# Function to ensure MT5 is connected before each operation
 def ensure_mt5_connection():
-    """S'assure que MT5 est connecté, reconnecte si nécessaire"""
+    """Ensures MT5 is connected, reconnects if necessary"""
     if not check_mt5_connection():
         logging.warning("API - MT5 connection lost, attempting to reconnect...")
         return initialize_mt5()
     return True
 
-# Thread de monitoring pour maintenir la connexion
+# Monitoring thread to maintain connection
 def mt5_connection_monitor():
-    """Vérifie périodiquement la connexion et reconnecte si nécessaire"""
+    """Periodically checks connection and reconnects if necessary"""
     while True:
         try:
-            time.sleep(30)  # Vérifier toutes les 30 secondes
+            time.sleep(30)  # Check every 30 seconds
             if not check_mt5_connection():
                 logging.warning("Monitor - MT5 connection lost, reconnecting...")
-                initialize_mt5()  # Juste essayer de reconnecter, pas de kill
+                initialize_mt5()  # Just try to reconnect, no kill
         except Exception as e:
             logging.error(f"Monitor - Error: {e}")
             time.sleep(10)
 
-# Démarrer le thread de monitoring
+# Start the monitoring thread
 monitor_thread = threading.Thread(target=mt5_connection_monitor, daemon=True)
 monitor_thread.start()
 logging.info("API - Connection monitor started")
-logger.info("🚀 MT5 API ready to receive requests")
+logging.info("MT5 API ready to receive requests")
 
 
 # Build mapping {code: name}
@@ -192,47 +192,135 @@ retcode_map = {
     if name.startswith("TRADE_RETCODE_") and isinstance(value, int)
 }
 
-# # init kazzoo
-# kazoo_client = KazooClient()
-# logging.warning(f"Init ZOOKEEPER: {os.environ['ZOOKEEPER']}")
-# conn_retry_policy = KazooRetry(max_tries=-1, delay=0.1, max_delay=4, ignore_expire=True)
-# cmd_retry_policy = KazooRetry(max_tries=-1, delay=0.3, backoff=1, max_delay=4, ignore_expire=True)
-# client = KazooClient(hosts=os.environ['ZOOKEEPER'], connection_retry=conn_retry_policy, command_retry=cmd_retry_policy)
-# for _ in range(3):
-#     try:
-#         client.start()
-#         break
-#     except:
-#         logging.warning(f"error when connect zk: {os.environ['ZOOKEEPER']}, {traceback.format_exc()}")
+
+# 1. GLOBAL VARIABLES (add with other global variables, after running_threads and thread_flags)
+trailing_triggers = {}  # key = (symbol, magic, comment) -> {"trigger_price": x, "trail_points": y, "trail_step": z, "is_long": bool}
+MAX_POSITION_CHECKS = 15  
+POSITION_CHECK_DELAY = 0.05  # 50ms (pour centraliser la valeur)
+# 2. PRICE MONITORING FUNCTION (add AFTER the existing trailing_loop function, around line 1200)
+def price_monitor_thread():
+    """Monitors prices to activate pending trailing"""
+    position_check_counters = {}  # Track retry counts per key
+    
+    while True:
+        try:
+            # Check MT5 connection
+            if not check_mt5_connection():
+                time.sleep(5)
+                continue
+                
+            for key, trigger in list(trailing_triggers.items()):
+                symbol, magic, comment = key
+                
+                # Initialize counter if new
+                if key not in position_check_counters:
+                    position_check_counters[key] = 0
+                
+                # Check if position exists
+                positions = mt5.positions_get(symbol=symbol)
+                position = None
+                if positions:
+                    for pos in positions:
+                        if pos.magic == magic:
+                            if comment and pos.comment != comment:
+                                continue
+                            position = pos
+                            break
+                
+                if not position:
+                    position_check_counters[key] += 1
+                    if position_check_counters[key] >= MAX_POSITION_CHECKS:  # Max 10 attempts
+                        trailing_triggers.pop(key, None)
+                        position_check_counters.pop(key, None)
+                        logging.info(f"Position not found after {MAX_POSITION_CHECKS} checks, trigger removed for {symbol}/{magic}/{comment}")
+                    continue  # Skip to next trigger, check again next loop
+                
+                # Position exists, reset counter
+                position_check_counters.pop(key, None)
+                
+                # Check if we need to adjust the trigger (first time finding the position)
+                if trigger.get("pending_adjustment", False):
+                    real_entry = position.price_open
+                    theoretical_entry = trigger.get("theoretical_entry", real_entry)
+                    # If no theoretical_entry was stored, use real_entry (no adjustment needed)
+                    if theoretical_entry is None:
+                        theoretical_entry = real_entry
+                    
+                    entry_delta = real_entry - theoretical_entry
+                    
+                    # Adjust the trigger price
+                    original_trigger = trigger["trigger_price"]
+                    trigger["trigger_price"] = original_trigger + entry_delta
+                    trigger["pending_adjustment"] = False
+                    trigger["is_long"] = position.type == mt5.ORDER_TYPE_BUY
+                    
+                    logging.info(f"[PRICE MONITOR] Adjusted trigger for {symbol}: {original_trigger} -> {trigger['trigger_price']} (delta: {entry_delta})")
+                
+                # Get current price
+                tick = mt5.symbol_info_tick(symbol)
+                if not tick:
+                    continue
+                
+                current_price = tick.bid if trigger["is_long"] else tick.ask
+                trigger_price = trigger["trigger_price"]
+                
+                # Check if trigger is reached (or if trigger_price is 0 = immediate)
+                trigger_reached = False
+                if trigger_price == 0:
+                    trigger_reached = True
+                    logging.info(f"Immediate trigger activated for {symbol}")
+                elif trigger["is_long"] and current_price >= trigger_price:
+                    trigger_reached = True
+                    logging.info(f"LONG trigger reached: {current_price} >= {trigger_price}")
+                elif not trigger["is_long"] and current_price <= trigger_price:
+                    trigger_reached = True
+                    logging.info(f"SHORT trigger reached: {current_price} <= {trigger_price}")
+                
+                if trigger_reached:
+                    # Remove trigger first
+                    trailing_triggers.pop(key, None)
+                    
+                    # Activate trailing
+                    with threads_lock:
+                        if key not in running_threads or not running_threads[key].is_alive():
+                            t = threading.Thread(
+                                target=trailing_loop,
+                                args=(symbol, magic, comment, trigger["trail_points"], trigger["trail_step"]),
+                                daemon=True
+                            )
+                            running_threads[key] = t
+                            thread_flags[key] = True
+                            t.start()
+                            logging.info(f"Trailing started for {symbol}/{magic}/{comment} with {trigger['trail_points']} points")
+                    
+            time.sleep(POSITION_CHECK_DELAY)  # Check every 50ms
+            
+        except Exception as e:
+            logging.error(f"Error in price_monitor_thread: {e}")
+            logging.error(traceback.format_exc())
+            time.sleep(2)
 
 
-# def thread_function(name):
-#     node_path = f"/account/{os.environ['ACCOUNT']}/running"
-#     while True:
-#         try:
-#             if not client.exists(node_path):
-#                 client.create(node_path, ephemeral=True)
-
-#                 client.set(node_path, json.dumps({
-#                     'service': 'http://' + socket.gethostbyname(socket.gethostname())+":8000",
-#                     'wine': socket.gethostbyname(socket.gethostname())+":8080",
-#                     **{x: os.environ[x] for x in ['ACCOUNT', 'PASSWORD', 'SERVER']}
-#                 }, indent=3).encode())
-#                 logging.warning(f"Create node: {node_path}")
-#         except:
-#             logging.exception("Error when create running node", exc_info=True)
-
-#         import time
-#         time.sleep(5)
-
-
-# live_thread = threading.Thread(target=thread_function, args=(1,))
-# live_thread.start()
+# 3. START THE MONITORING THREAD (add AFTER starting the MT5 monitor)
+price_monitor = threading.Thread(target=price_monitor_thread, daemon=True)
+price_monitor.start()
+logging.info("Price monitor for trailing started")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup
+    import logging
+    
+    if os.environ.get("API_KEY"):
+        logging.warning("API Key protection ENABLED")
+        logging.warning(f"API Key required: {os.environ.get('API_KEY')[:8]}...")
+    else:
+        logging.warning("WARNING: API Key protection DISABLED - Running in OPEN mode")
+        logging.warning("WARNING: Anyone can access this API! Set API_KEY in .env for security")
+    
     yield
+    # Shutdown
     # node_path = f"/account/{os.environ['ACCOUNT']}/running"
     # client.delete(node_path)
 
@@ -241,48 +329,48 @@ app = FastAPI(lifespan=lifespan)
 # Allow CORS Requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ou remplace "*" par ["http://localhost:8089"] pour être plus restrictif
+    allow_origins=["*"],  # or replace "*" with ["http://localhost:8089"] to be more restrictive
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ========================================
-# MIDDLEWARE GLOBAL - API Key OPTIONNELLE
+# GLOBAL MIDDLEWARE - Optional API Key
 # ========================================
 @app.middleware("http")
 async def verify_api_key_middleware(request: Request, call_next):
     #logging.debug(f"API - verify_api_key_middleware")
-    # Routes toujours publiques
+    # Always public routes
     PUBLIC_ROUTES = ["/health", "/", "/docs", "/openapi.json", "/redoc"]
     
-    # IMPORTANT: Laisser passer les requêtes OPTIONS (CORS preflight)
+    # IMPORTANT: Let OPTIONS requests through (CORS preflight)
     if request.method == "OPTIONS":
         return await call_next(request)
     
-    # Si c'est une route publique, on laisse passer
+    # If it's a public route, let it through
     if request.url.path in PUBLIC_ROUTES:
         return await call_next(request)
     
-    # Vérifier si une API_KEY est définie dans l'environnement
+    # Check if an API_KEY is defined in the environment
     expected_api_key = os.environ.get("API_KEY")
     
-    # Si pas d'API_KEY définie = mode ouvert (pas de sécurité)
+    # If no API_KEY defined = open mode (no security)
     if not expected_api_key:
         return await call_next(request)
     
-    # Si API_KEY définie, on doit la vérifier
+    # If API_KEY defined, we must verify it
     api_key = None
     
-    # 1. Chercher dans l'URL (query params)
+    # 1. Look in URL (query params)
     if "api_key" in request.query_params:
         api_key = request.query_params["api_key"]
     
-    # 2. Ou dans les headers
+    # 2. Or in headers
     elif "X-API-Key" in request.headers:
         api_key = request.headers["X-API-Key"]
     
-    # Vérifier l'API key
+    # Verify the API key
     if not api_key or api_key != expected_api_key:
         return JSONResponse(
             status_code=401,
@@ -292,23 +380,9 @@ async def verify_api_key_middleware(request: Request, call_next):
             }
         )
     
-    # API Key valide, continuer
+    # Valid API Key, continue
     response = await call_next(request)
     return response
-
-#========================================
-# LOG AU DÉMARRAGE
-#========================================
-@app.on_event("startup")
-async def startup_event():
-    import logging
-    
-    if os.environ.get("API_KEY"):
-        logging.warning("🔒 API Key protection ENABLED")
-        logging.warning(f"API Key required: {os.environ.get('API_KEY')[:8]}...")
-    else:
-        logging.warning("⚠️  API Key protection DISABLED - Running in OPEN mode")
-        logging.warning("⚠️  Anyone can access this API! Set API_KEY in .env for security")
 
 
 @app.get("/health")
@@ -317,7 +391,7 @@ def health():
         account = mt5.account_info()
         if account is None:
             code, message = mt5.last_error()
-            raise Exception(f"MT5 non initialisé ou session invalide : [{code}] {message}")
+            raise Exception(f"MT5 not initialized or invalid session: [{code}] {message}")
 
         return response_from_mt5_result({"login": "OK"})
         
@@ -330,7 +404,7 @@ def healthPrivate():
         account = mt5.account_info()
         if account is None:
             code, message = mt5.last_error()
-            raise Exception(f"MT5 non initialisé ou session invalide : [{code}] {message}")
+            raise Exception(f"MT5 not initialized or invalid session: [{code}] {message}")
 
         return response_from_mt5_result({"login": account.login})
         
@@ -338,12 +412,12 @@ def healthPrivate():
         return response_from_exception(e)
 
 @app.get("/")
-def health():
+def root():  # FIXED: Renamed from health to root to avoid duplicate
     try:
         account = mt5.account_info()
         if account is None:
             code, message = mt5.last_error()
-            raise Exception(f"MT5 non initialisé ou session invalide : [{code}] {message}")
+            raise Exception(f"MT5 not initialized or invalid session: [{code}] {message}")
 
         return response_from_mt5_result({"RET": "OK"})
         
@@ -366,7 +440,7 @@ def response_from_mt5_result(
             }
         )
 
-    # Liste → on convertit chaque item si besoin
+    # List -> convert each item if needed
     if isinstance(result, list):
         data = [r._asdict() if hasattr(r, "_asdict") else r for r in result]
         return JSONResponse(
@@ -378,7 +452,7 @@ def response_from_mt5_result(
             }
         )
 
-    # Objet unique
+    # Single object
     result_dict = result._asdict() if hasattr(result, "_asdict") else result
     has_retcode = "retcode" in result_dict
     retcode = result_dict.get("retcode", success_retcode)
@@ -450,13 +524,13 @@ def candle_last(inp: GetLastCandleRequest):
         code, msg = mt5.last_error()
         return response_from_mt5_result( {"retcode": code, "status": "error", "message": msg})
 
-    # Convertir numpy structured array → liste de dicts
+    # Convert numpy structured array -> list of dicts
     data = [
         {key: numpy_to_native(r[key]) for key in rates.dtype.names}
         for r in rates
     ]
 
-    # Supprimer la dernière bougie si start == 0
+    # Remove last candle if start == 0
     if inp.start == 0 and data:
         data = data[:-1]
 
@@ -464,56 +538,86 @@ def candle_last(inp: GetLastCandleRequest):
 
 
     
-# Trade History (finished)
-@app.get("/history-deals", summary="Récupère l'historique des deals (filtrage par symbol et magic)")
+# Trade History (finished and unfinished)
+@app.get("/history-deals", summary="Deals (filters: symbol, magic; finished_only)")
 def deals_all(
-    symbol: Optional[str] = Query(None, description="Symbole à filtrer (ex: XAUUSD)"),
-    magic: Optional[int] = Query(None, description="Magic number à filtrer")
+    symbol: Optional[str] = Query(None, description="e.g. XAUUSD"),
+    magic: Optional[int] = Query(None, description="EA magic"),
+    finished_only: bool = Query(True, description="Only closed trades (add open positions if False)")
 ):
     from_date = datetime(2025, 1, 1)
     to_date = datetime.utcnow() + timedelta(days=3)
 
     try:
         deals = mt5.history_deals_get(from_date, to_date, group=symbol) if symbol else mt5.history_deals_get(from_date, to_date)
-
         if deals is None:
             code, msg = mt5.last_error()
-            return {
-                "retcode": code,
-                "status": retcode_map.get(code, "UNKNOWN_RETCODE"),
-                "message": msg,
-                "data": []
-            }
+            return {"retcode": code, "status": retcode_map.get(code, "UNKNOWN_RETCODE"), "message": msg, "data": []}
 
-        filtered = [d._asdict() for d in deals if magic is None or d.magic == magic]
-        return response_from_mt5_result(filtered)
+        # index des ouvertures (entry=0)
+        opens = {}
+        for d in deals:
+            if d.entry == 0 and d.position_id not in opens:
+                opens[d.position_id] = {
+                    "magic": d.magic,
+                    "comment_open": d.comment,
+                    "entry_price": d.price,
+                    "time_open": d.time,
+                    "symbol": d.symbol,
+                    "side": "BUY" if d.type == mt5.DEAL_TYPE_BUY else "SELL",
+                }
+
+        out = []
+        # fermetures (entry=1)
+        for d in deals:
+            if d.entry != 1:
+                continue
+            o = opens.get(d.position_id, {})
+            eff_magic = o.get("magic", d.magic)
+            if magic is not None and eff_magic != magic:
+                continue
+            rec = d._asdict()
+            rec["magic"] = eff_magic
+            rec["comment_close"] = rec.pop("comment", "")
+            rec["comment"] = o.get("comment_open", "")
+            rec["entry_price"] = o.get("entry_price")
+            rec["close_price"] = d.price
+            rec["time_open"] = o.get("time_open")
+            rec["time_close"] = d.time
+            rec["symbol"] = o.get("symbol", d.symbol)
+            rec["side"] = o.get("side", "BUY" if d.type == mt5.DEAL_TYPE_BUY else "SELL")
+            rec["status"] = "CLOSED"
+            out.append(rec)
+
+        if not finished_only:
+            positions = mt5.positions_get(symbol=symbol) if symbol else mt5.positions_get()
+            if positions:
+                for p in positions:
+                    if magic is not None and p.magic != magic:
+                        continue
+                    out.append({
+                        "position_id": p.ticket,
+                        "symbol": p.symbol,
+                        "magic": p.magic,
+                        "comment": p.comment,
+                        "comment_close": None,
+                        "entry_price": p.price_open,
+                        "close_price": None,
+                        "time_open": p.time,
+                        "time_close": None,
+                        "profit": p.profit,
+                        "volume": p.volume,
+                        "type": p.type,
+                        "side": "BUY" if p.type == mt5.POSITION_TYPE_BUY else "SELL",
+                        "status": "OPEN",
+                    })
+
+        return response_from_mt5_result(out)
 
     except Exception as e:
-        response_from_exception(e)
+        return response_from_exception(e)
 
-@app.post("/account/login")
-def account_login():
-    success = mt5.initialize(
-        path=MT5_EXEC,
-        login=int(os.environ["ACCOUNT"]),
-        password=os.environ["PASSWORD"],
-        server=os.environ["SERVER"],
-    )
 
-    if not success:
-        code, msg = mt5.last_error()
-        return JSONResponse(
-            status_code=500,
-            content={
-                "retcode": code,
-                "status": retcode_map.get(code, "UNKNOWN_RETCODE"),
-                "comment": msg
-            }
-        )
-
-    return response_from_mt5_result({
-            "comment": "Login successful"
-        })
 
 @app.get("/account/info")
 def account_info():
@@ -531,14 +635,14 @@ def trade_new(request: OrderRequest):
     logging.debug("trade_new")
     side = request.side.lower()
     if side not in ("buy", "sell"):
-        raise HTTPException(status_code=400, detail="Le champ `side` doit être 'buy' ou 'sell'.")
+        raise HTTPException(status_code=400, detail="The `side` field must be 'buy' or 'sell'.")
 
     return _trade_buy(request, mt5.ORDER_TYPE_BUY if request.side =="buy" else mt5.ORDER_TYPE_SELL)
 
 def _trade_buy(request: OrderRequest, side) -> Dict:
     #close_all(request.symbol, request.magic, request.deviation)
     try:
-         # Choisir un mode valide
+         # Choose a valid mode
         symbol_info = mt5.symbol_info(request.symbol)
         logging.debug("get_safe_filling_mode++")
         filling_mode = get_safe_filling_mode(symbol_info)
@@ -578,13 +682,13 @@ def _trade_buy(request: OrderRequest, side) -> Dict:
     except Exception as e:
         return response_from_exception(e)
     
-# Définir les constantes manquantes dans votre code
+# Define missing constants in your code
 SYMBOL_FILLING_FOK = 1
 SYMBOL_FILLING_IOC = 2
 SYMBOL_FILLING_RETURN = 4
 
 def get_safe_filling_mode(symbol_info) -> int:
-    """Détecte automatiquement le meilleur mode de remplissage"""
+    """Automatically detects the best filling mode"""
     if symbol_info is None:
         return mt5.ORDER_FILLING_RETURN
     
@@ -598,7 +702,7 @@ def get_safe_filling_mode(symbol_info) -> int:
     logging.debug(f"Supports IOC: {bool(filling_flags & SYMBOL_FILLING_IOC)}")
     logging.debug(f"Supports RETURN: {bool(filling_flags & SYMBOL_FILLING_RETURN)}")
     
-    # Ordre de préférence selon le type d'exécution
+    # Preference order based on execution type
     if execution_mode == 2:  # Market execution
         preferred_order = [
             (SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK),
@@ -612,7 +716,7 @@ def get_safe_filling_mode(symbol_info) -> int:
             (SYMBOL_FILLING_FOK, mt5.ORDER_FILLING_FOK)
         ]
     
-    # Chercher le premier mode supporté
+    # Look for the first supported mode
     for flag, mode in preferred_order:
         if filling_flags & flag:
             logging.debug(f"Selected filling mode: {mode}")
@@ -633,11 +737,11 @@ def close_all(symbol: str, magic: int, deviation: int = 10) -> List[dict]:
     positions = mt5.positions_get(symbol=symbol)
     if positions is None:
         code, msg = mt5.last_error()
-        raise Exception(f"Erreur MT5 lors de positions_get(): [{code}] {msg}")
+        raise Exception(f"MT5 error in positions_get(): [{code}] {msg}")
 
     cur_tick = mt5.symbol_info_tick(symbol)
     if not cur_tick or cur_tick.ask == 0 or cur_tick.bid == 0:
-        raise Exception(f"Tick invalide pour {symbol} — ask/bid indisponible")
+        raise Exception(f"Invalid tick for {symbol} - ask/bid unavailable")
 
     symbol_info = mt5.symbol_info(symbol)
     filling_mode = get_safe_filling_mode(symbol_info)
@@ -654,7 +758,7 @@ def close_all(symbol: str, magic: int, deviation: int = 10) -> List[dict]:
             price = cur_tick.ask
             order_type = mt5.ORDER_TYPE_BUY
         else:
-            raise Exception(f"Type d'ordre non supporté : {p.type}")
+            raise Exception(f"Unsupported order type: {p.type}")
 
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -750,9 +854,9 @@ def modify_order(
         }
 
         if request.tp:
-            trade_request["tp"] = request.tp  # Sinon on ne le met pas
+            trade_request["tp"] = request.tp  # Otherwise don't include it
         if request.sl:
-            trade_request["sl"] = request.sl  # Sinon on ne le met pas
+            trade_request["sl"] = request.sl  # Otherwise don't include it
 
         result = mt5.order_send(trade_request)
         return response_from_mt5_result(result)
@@ -805,53 +909,54 @@ def tick_history(inp: GetHistoryTickRequest):
         return response_from_exception(e)
 
 
-# Endpoint GET avec paramètre `symbol`
+# GET endpoint with `symbol` parameter
 @app.get("/symbol-info/{symbol}")
 def symbol_info(symbol: str):
     info = mt5.symbol_info(symbol)
-    if info is None:
-        raise HTTPException(status_code=404, detail=f"Symbole introuvable : {symbol}")
     
-    # Active s’il n’est pas visible
-    if not info.visible:
-        print(f"Activation du symbole {symbol}...")
+    # If symbol not found, try to activate it
+    if info is None:
+        print(f"Symbol not found. Attempting to activate {symbol}...")
         if not mt5.symbol_select(symbol, True):
-            raise HTTPException(status_code=500, detail=f"Impossible d’activer {symbol}")
+            raise HTTPException(status_code=404, detail=f"Symbol not found: {symbol}")
+        
         info = mt5.symbol_info(symbol)
         if info is None:
-            raise HTTPException(status_code=404, detail=f"Symbole introuvable après activation : {symbol}")
+            raise HTTPException(status_code=404, detail=f"Symbol not found after activation: {symbol}")
+    
+    # If symbol exists but not visible, activate it
+    elif not info.visible:
+        print(f"Symbol not visible. Activating {symbol}...")
+        if not mt5.symbol_select(symbol, True):
+            raise HTTPException(status_code=500, detail=f"Cannot activate {symbol}")
+        info = mt5.symbol_info(symbol)
 
-    # attend que les prix arrivent
+    # Wait for prices to arrive
     for _ in range(5):
-        # Si prix dispo OU marché fermé (donc inutile d'attendre)
         if info.ask > 0 or info.bid > 0 or info.trade_mode == 0:
             break
         time.sleep(0.1)
         info = mt5.symbol_info(symbol)
 
-    #if info.ask == 0 and info.bid == 0:
-    #    #trade_mode == 0 => marker closed
-    #    raise HTTPException(status_code=503, detail=f"No prices available for {symbol} => Market closed?")
-
     return response_from_mt5_result(info._asdict())
 
-@app.delete("/trade/{order_id}", summary="Clôturer une position existante", status_code=200)
+@app.delete("/trade/{order_id}", summary="Close an existing position", status_code=200)
 def close_position_by_id(
-    order_id: int = Path(..., description="ID de la position à clôturer"),
-    magic: Optional[int] = Query(None, description="Magic number de sécurité"),
-    deviation: int = Query(10, description="Déviation maximale autorisée (slippage)")
+    order_id: int = Path(..., description="Position ID to close"),
+    magic: Optional[int] = Query(None, description="Security magic number"),
+    deviation: int = Query(10, description="Maximum allowed deviation (slippage)")
 ):
     try:
         positions = mt5.positions_get(ticket=order_id)
         if not positions:
-            raise HTTPException(status_code=404, detail=f"Position {order_id} introuvable")
+            raise HTTPException(status_code=404, detail=f"Position {order_id} not found")
 
         position = positions[0]
 
         if magic is not None and position.magic != magic:
             raise HTTPException(
                 status_code=403,
-                detail=f"Magic incorrect : attendu {magic}, reçu {position.magic}"
+                detail=f"Incorrect magic: expected {magic}, received {position.magic}"
             )
 
         symbol = position.symbol
@@ -860,7 +965,7 @@ def close_position_by_id(
 
         tick = mt5.symbol_info_tick(symbol)
         if not tick or tick.ask == 0 or tick.bid == 0:
-            raise HTTPException(status_code=500, detail="Tick invalide")
+            raise HTTPException(status_code=500, detail="Invalid tick")
         
         symbol_info = mt5.symbol_info(symbol)
         filling_mode = get_safe_filling_mode(symbol_info)
@@ -872,7 +977,7 @@ def close_position_by_id(
             price = tick.ask
             order_type = mt5.ORDER_TYPE_BUY
         else:
-            raise HTTPException(status_code=400, detail=f"Type de position non supporté : {position.type}")
+            raise HTTPException(status_code=400, detail=f"Unsupported position type: {position.type}")
 
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -899,17 +1004,17 @@ def close_position_by_id(
 @app.get("/positions")
 def list_positions(symbol: Optional[str] = Query(None), magic: Optional[int] = Query(None)):
     try:
-        # Appel natif : on filtre par symbol si fourni
+        # Native call: filter by symbol if provided
         if symbol is not None:
             positions = mt5.positions_get(symbol=symbol)
         else:
-            positions = mt5.positions_get()  # récupère tous les ordres
+            positions = mt5.positions_get()  # get all orders
 
 
         if positions is None or len(positions) == 0:
             return []
 
-        # Filtrage supplémentaire côté Python pour le magic number
+        # Additional filtering in Python for magic number
         if magic is not None:
             positions = [p for p in positions if p.magic == magic]
 
@@ -921,19 +1026,19 @@ def list_positions(symbol: Optional[str] = Query(None), magic: Optional[int] = Q
 
 @app.get("/positions/{ticket}")
 def get_position_by_ticket(
-    ticket: int = Path(..., description="Numéro du ticket de la position"),
-    magic: Optional[int] = Query(None, description="Magic number pour filtrer")
+    ticket: int = Path(..., description="Position ticket number"),
+    magic: Optional[int] = Query(None, description="Magic number to filter")
 ):
     try:
         positions = mt5.positions_get(ticket=ticket)
 
         if not positions:
-            raise HTTPException(status_code=404, detail=f"Aucune position trouvée pour le ticket {ticket}")
+            raise HTTPException(status_code=404, detail=f"No position found for ticket {ticket}")
 
         position = positions[0]
 
         if magic is not None and position.magic != magic:
-            raise HTTPException(status_code=404, detail=f"No position found fot magic number ≠ {magic}")
+            raise HTTPException(status_code=404, detail=f"No position found for magic number != {magic}")
 
         return response_from_mt5_result(position)
 
@@ -944,16 +1049,16 @@ def get_position_by_ticket(
 @app.get("/orders")
 def list_orders(symbol: Optional[str] = Query(None), magic: Optional[int] = Query(None)):
     try:
-        # Appel natif : on filtre par symbol si fourni
+        # Native call: filter by symbol if provided
         if symbol is not None:
             orders = mt5.orders_get(symbol=symbol)
         else:
-            orders = mt5.orders_get()  # récupère tous les ordres
+            orders = mt5.orders_get()  # get all orders
 
         if orders is None or len(orders) == 0:
             return []
 
-        # Filtrage supplémentaire côté Python pour le magic number
+        # Additional filtering in Python for magic number
         if magic is not None:
             orders = [p for p in orders if p.magic == magic]
 
@@ -965,19 +1070,19 @@ def list_orders(symbol: Optional[str] = Query(None), magic: Optional[int] = Quer
 
 @app.get("/orders/{ticket}")
 def get_order_by_ticket(
-    ticket: int = Path(..., description="Numéro du ticket de l'ordre"),
-    magic: Optional[int] = Query(None, description="Magic number pour filtrer")
+    ticket: int = Path(..., description="Order ticket number"),
+    magic: Optional[int] = Query(None, description="Magic number to filter")
 ):
     try:
         positions = mt5.orders_get(ticket=ticket)
 
         if not positions:
-            raise HTTPException(status_code=404, detail=f"Aucun ordre trouvée pour le ticket {ticket}")
+            raise HTTPException(status_code=404, detail=f"No order found for ticket {ticket}")
 
         position = positions[0]
 
         if magic is not None and position.magic != magic:
-            raise HTTPException(status_code=404, detail=f"No order found for magic number ≠ {magic}")
+            raise HTTPException(status_code=404, detail=f"No order found for magic number != {magic}")
 
         return response_from_mt5_result(position)
 
@@ -986,8 +1091,8 @@ def get_order_by_ticket(
 
 @app.delete("/orders/{order_id}", summary="Close an existing order", status_code=200)
 def close_order_by_id(
-    order_id: int = Path(..., description="ID de la position à clôturer"),
-    magic: Optional[int] = Query(None, description="Magic number de sécurité"),
+    order_id: int = Path(..., description="Order ID to close"),
+    magic: Optional[int] = Query(None, description="Security magic number"),
 ):
     try:
         result = mt5.order_delete(ticket=order_id)
@@ -1029,7 +1134,7 @@ def candle_history(inp: GetHistoryCandleRequest):
     try:
         #return f"timeframe={inp.timeframe} tf_dic={tf_dic}"
         timeframe = tf_dic.get(inp.timeframe, None)
-        assert timeframe, f"timeframe invalid: {inp.timeframe}"
+        assert timeframe, f"Invalid timeframe: {inp.timeframe}"
         from_date = inp.from_date.replace(tzinfo=None)
         to_date = inp.to_date.replace(tzinfo=None)
         #return f"from_date={from_date} ({type(inp.from_date)}), to_date={inp.to_date} ({type(inp.to_date)})"
@@ -1057,7 +1162,7 @@ async def websocket_endpoint(websocket: WebSocket, symbol: str):
     await websocket.accept()
     last_time_msc = None
     
-    # Vérification que le symbole existe et est disponible
+    # Check that symbol exists and is available
     if not mt5.symbol_select(symbol, True):
         error_msg = {"error": f"Symbol {symbol} not found or not available"}
         await websocket.send_json(error_msg)
@@ -1069,39 +1174,43 @@ async def websocket_endpoint(websocket: WebSocket, symbol: str):
             if tick:
                 current_tick = tick._asdict()
                 current_time_msc = current_tick.get('time_msc')
-                # Vérifier si c'est un nouveau tick en comparant time_msc
+                # Check if it's a new tick by comparing time_msc
                 if last_time_msc != current_time_msc:
                     await websocket.send_json(current_tick)
                     last_time_msc = current_time_msc
-                   # print(f"Nouveau tick envoyé pour {symbol}: time_msc={current_time_msc}")
+                   # print(f"New tick sent for {symbol}: time_msc={current_time_msc}")
                 
-            await asyncio.sleep(0.01)  # Fréquence de vérification (10 fois par seconde)
+            await asyncio.sleep(0.01)  # Check frequency (10 times per second)
             
     except WebSocketDisconnect:
         pass
 
 
+# Part 2 - Continuation from Part 1
+# This file continues from the WebSocket endpoint in Part 1
 
 # =====================================
-# Webhook Trading view - Configuration
+# TradingView Webhook - Configuration
 # =====================================
 running_threads = {}
-thread_flags = {}  # clé = (symbol, magic, comment) → bool
-threads_lock = threading.Lock()  # Pour la thread-safety
-TRAILING_CHECK_INTERVAL = 0.1  # Intervalle de vérification en secondes
+# Dictionary to store pending trailing triggers
+trailing_triggers = {}  # key = (symbol, magic, comment) -> {"trigger_price": x, "trail_points": y, "trail_step": z, "is_long": bool}
+thread_flags = {}  # key = (symbol, magic, comment) -> bool
+threads_lock = threading.Lock()  # For thread-safety
+TRAILING_CHECK_INTERVAL = 0.1  # Check interval in seconds
 
 def cleanup_dead_threads():
-    """Nettoie les threads terminés"""
+    """Cleans up terminated threads"""
     with threads_lock:
         dead_keys = [k for k, t in running_threads.items() if not t.is_alive()]
         for k in dead_keys:
             running_threads.pop(k, None)
             thread_flags.pop(k, None)
         if dead_keys:
-            logging.info(f"🧹 Nettoyage de {len(dead_keys)} threads terminés")
+            logging.info(f"Cleaned up {len(dead_keys)} terminated threads")
 
 def check_position_exists(symbol: str, magic: int, comment: str = None) -> bool:
-    """Vérifie si une position existe déjà avec les critères donnés"""
+    """Checks if a position already exists with the given criteria"""
     try:
         positions = mt5.positions_get(symbol=symbol)
         if not positions:
@@ -1110,17 +1219,17 @@ def check_position_exists(symbol: str, magic: int, comment: str = None) -> bool:
         for pos in positions:
             if pos.magic != magic:
                 continue
-            # Si un comment est spécifié, il doit correspondre
+            # If comment is specified, it must match
             if comment is not None and comment != "" and pos.comment != comment:
                 continue
             return True
         return False
     except Exception as e:
-        logging.error(f"Erreur check_position_exists: {e}")
+        logging.error(f"Error check_position_exists: {e}")
         return False
 
 def check_pending_order_exists(symbol: str, magic: int, comment: str = None, order_type: int = None) -> bool:
-    """Vérifie si un ordre pending existe déjà avec les critères donnés"""
+    """Checks if a pending order already exists with the given criteria"""
     try:
         orders = mt5.orders_get(symbol=symbol)
         if not orders:
@@ -1129,31 +1238,35 @@ def check_pending_order_exists(symbol: str, magic: int, comment: str = None, ord
         for order in orders:
             if order.magic != magic:
                 continue
-            # Si un comment est spécifié, il doit correspondre
+            # If comment is specified, it must match
             if comment is not None and comment != "" and order.comment != comment:
                 continue
-            # Si un type d'ordre est spécifié, il doit correspondre
+            # If order type is specified, it must match
             if order_type is not None and order.type != order_type:
                 continue
             return True
         return False
     except Exception as e:
-        logging.error(f"Erreur check_pending_order_exists: {e}")
+        logging.error(f"Error check_pending_order_exists: {e}")
         return False
 
 def trailing_loop(symbol: str, magic: int, comment: str, trail_points: float = 50.0, min_step: float = 10.0):
-    """Boucle de trailing stop améliorée avec gestion par comment"""
+    """Enhanced trailing stop loop with comment management and stops level validation"""
     start_time = time.time()
     pos = None
     key = (symbol, magic, comment or "")
     
-    logging.info(f"Démarrage du trailing pour {symbol}/{magic}/{comment or 'no comment'} - Points: {trail_points}, Step: {min_step}")
+    logging.info(f"Starting trailing for {symbol}/{magic}/{comment or 'no comment'} - Points: {trail_points}, Step: {min_step}")
 
-    # Récupérer les infos du symbole une fois
+    # Get symbol info once
+    point = None
+    digits = None
+    stops_level = 0
+    
     try:
         symbol_info = mt5.symbol_info(symbol)
         if not symbol_info:
-            logging.error(f"Symbole {symbol} introuvable")
+            logging.error(f"Symbol {symbol} not found")
             with threads_lock:
                 running_threads.pop(key, None)
                 thread_flags.pop(key, None)
@@ -1161,22 +1274,39 @@ def trailing_loop(symbol: str, magic: int, comment: str, trail_points: float = 5
         
         point = symbol_info.point
         digits = symbol_info.digits
+        stops_level = symbol_info.trade_stops_level
+        
+        # If broker returns 0, use a default minimum
+        if stops_level == 0:
+            stops_level = 10
+            logging.info(f"Broker trade_stops_level is 0, using default {stops_level} points")
+        
+        # Ensure trailing distance respects minimum
+        if trail_points < stops_level:
+            logging.warning(f"Trail points {trail_points} is less than minimum stops level {stops_level}, adjusting to {stops_level}")
+            trail_points = stops_level
+        
+        # Ensure minimum step is reasonable
+        if min_step < 1:
+            min_step = 1
+            logging.warning(f"Minimum step adjusted to 1 point")
+            
+        logging.info(f"Symbol {symbol}: point={point}, digits={digits}, trade_stops_level={stops_level}, adjusted trail_points={trail_points}")
+        
     except Exception as e:
-        logging.error(f"Erreur récupération symbol_info: {e}")
+        logging.error(f"Error getting symbol_info: {e}")
         with threads_lock:
             running_threads.pop(key, None)
             thread_flags.pop(key, None)
         return
 
-    # Attente max 3s pour trouver la position
+    # Wait max 3s to find the position
     while time.time() - start_time < 3:
         try:
             positions = mt5.positions_get(symbol=symbol)
             if positions:
-                # Filtrer par magic ET comment
                 for p in positions:
                     if p.magic == magic:
-                        # Si comment spécifié, doit correspondre exactement
                         if comment and p.comment != comment:
                             continue
                         pos = p
@@ -1184,21 +1314,21 @@ def trailing_loop(symbol: str, magic: int, comment: str, trail_points: float = 5
             if pos:
                 break
         except Exception as e:
-            logging.error(f"Erreur recherche position: {e}")
+            logging.error(f"Error searching position: {e}")
         time.sleep(TRAILING_CHECK_INTERVAL)
 
     if not pos:
-        logging.warning(f"Position introuvable pour trailing {symbol}/{magic}/{comment or 'no comment'}")
+        logging.warning(f"Position not found for trailing {symbol}/{magic}/{comment or 'no comment'}")
         with threads_lock:
             running_threads.pop(key, None)
             thread_flags.pop(key, None)
         return
 
-    logging.info(f"Thread trailing actif pour position #{pos.ticket} {symbol}/{magic}/{comment or 'no comment'}")
+    logging.info(f"Trailing thread active for position #{pos.ticket} {symbol}/{magic}/{comment or 'no comment'}")
     
     thread_flags[key] = True
     
-    # Variables pour suivre le meilleur niveau
+    # Variables to track best level
     best_price = None
     last_sl_update = 0
     error_count = 0
@@ -1206,13 +1336,13 @@ def trailing_loop(symbol: str, magic: int, comment: str, trail_points: float = 5
 
     while thread_flags.get(key, False):
         try:
-            # Vérifier la connexion MT5
+            # Check MT5 connection
             if not check_mt5_connection():
-                logging.warning("Connexion MT5 perdue dans trailing, attente...")
+                logging.warning("MT5 connection lost in trailing, waiting...")
                 time.sleep(5)
                 continue
 
-            # Vérifier que la position existe toujours
+            # Check position still exists
             positions = mt5.positions_get(symbol=symbol)
             pos = None
             if positions:
@@ -1224,7 +1354,7 @@ def trailing_loop(symbol: str, magic: int, comment: str, trail_points: float = 5
                         break
 
             if not pos:
-                logging.info(f"❌ Position fermée {symbol}/{magic}/{comment or 'no comment'} → arrêt du trailing")
+                logging.info(f"Position closed {symbol}/{magic}/{comment or 'no comment'} -> stopping trailing")
                 break
 
             tick = mt5.symbol_info_tick(symbol)
@@ -1232,116 +1362,171 @@ def trailing_loop(symbol: str, magic: int, comment: str, trail_points: float = 5
                 time.sleep(TRAILING_CHECK_INTERVAL)
                 continue
 
-            # === POSITION BUY ===
+            # === BUY POSITION ===
             if pos.type == mt5.POSITION_TYPE_BUY:
                 current_price = tick.bid
                 
-                # Mettre à jour le meilleur prix
+                # Update best price
                 if best_price is None or current_price > best_price:
                     best_price = current_price
                 
-                # Calculer le nouveau SL potentiel
+                # Calculate new potential SL
                 new_sl = best_price - (trail_points * point)
                 
-                # Vérifier si on doit mettre à jour
-                if pos.sl is None or new_sl > pos.sl:
-                    # Vérifier le step minimum
-                    if pos.sl is None or (new_sl - pos.sl) >= (min_step * point):
-                        # Éviter les mises à jour trop fréquentes (max 1 par seconde)
-                        if time.time() - last_sl_update > 1:
-                            request = {
-                                "action": mt5.TRADE_ACTION_SLTP,
-                                "position": pos.ticket,
-                                "sl": round(new_sl, digits),
-                                "tp": pos.tp if pos.tp else 0,
-                            }
-                            result = mt5.order_send(request)
-                            if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                                logging.info(f"SL BUY mis à jour {symbol}/{magic}/{comment or 'no comment'}: {pos.sl:.{digits}f} -> {new_sl:.{digits}f}")
-                                last_sl_update = time.time()
-                                error_count = 0  # Reset error count on success
-                            elif result:
-                                logging.warning(f"Erreur trailing BUY [{result.retcode}]: {result.comment}")
-                                error_count += 1
+                # Verify minimum distance from current price
+                min_distance = stops_level * point
+                if (current_price - new_sl) < min_distance:
+                    new_sl = current_price - min_distance
+                
+                # Round the new SL early
+                new_sl = round(new_sl, digits)
+                
+                # Get current SL (handle None/0)
+                current_sl = pos.sl if pos.sl else 0.0
+                current_sl = round(current_sl, digits)  # Normalize for comparison
+                
+                # Check if we should update
+                should_update = False
+                
+                # Case 1: No SL currently
+                if current_sl == 0:
+                    should_update = True
+                    logging.info(f"BUY: No current SL, will set to {new_sl:.{digits}f}")
+                
+                # Case 2: SL exists, check if new one is better
+                elif new_sl > current_sl:  # For BUY, higher SL is better
+                    step_diff = new_sl - current_sl
+                    if step_diff >= (min_step * point):
+                        should_update = True
+                    else:
+                        logging.debug(f"BUY: New SL {new_sl:.{digits}f} only {step_diff/point:.1f} points better than current {current_sl:.{digits}f}, min step is {min_step}")
+                else:
+                    logging.debug(f"BUY: New SL {new_sl:.{digits}f} not better than current {current_sl:.{digits}f}")
+                
+                # Send update if necessary
+                if should_update:
+                    if time.time() - last_sl_update > 1:
+                        request = {
+                            "action": mt5.TRADE_ACTION_SLTP,
+                            "position": pos.ticket,
+                            "sl": new_sl,
+                            "tp": pos.tp if pos.tp else 0
+                        }
+                        
+                        result = mt5.order_send(request)
+                        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                            logging.info(f"BUY SL updated {symbol}/{magic}/{comment or 'no comment'}: {current_sl:.{digits}f} -> {new_sl:.{digits}f}")
+                            last_sl_update = time.time()
+                            error_count = 0
+                        elif result:
+                            logging.warning(f"BUY trailing error [{result.retcode}]: {result.comment}")
+                            error_count += 1
 
-            # === POSITION SELL ===
+            # === SELL POSITION ===
             elif pos.type == mt5.POSITION_TYPE_SELL:
                 current_price = tick.ask
                 
-                # Mettre à jour le meilleur prix
+                # Update best price
                 if best_price is None or current_price < best_price:
                     best_price = current_price
                 
-                # Calculer le nouveau SL potentiel
+                # Calculate new potential SL
                 new_sl = best_price + (trail_points * point)
                 
-                # Vérifier si on doit mettre à jour
-                if pos.sl is None or new_sl < pos.sl:
-                    # Vérifier le step minimum
-                    if pos.sl is None or (pos.sl - new_sl) >= (min_step * point):
-                        # Éviter les mises à jour trop fréquentes
-                        if time.time() - last_sl_update > 1:
-                            request = {
-                                "action": mt5.TRADE_ACTION_SLTP,
-                                "position": pos.ticket,
-                                "sl": round(new_sl, digits),
-                                "tp": pos.tp if pos.tp else 0,
-                            }
-                            result = mt5.order_send(request)
-                            if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                                logging.info(f"SL SELL mis à jour {symbol}/{magic}/{comment or 'no comment'}: {pos.sl:.{digits}f} -> {new_sl:.{digits}f}")
-                                last_sl_update = time.time()
-                                error_count = 0  # Reset error count on success
-                            elif result:
-                                logging.warning(f"Erreur trailing SELL [{result.retcode}]: {result.comment}")
-                                error_count += 1
+                # Verify minimum distance from current price
+                min_distance = stops_level * point
+                if (new_sl - current_price) < min_distance:
+                    new_sl = current_price + min_distance
+                
+                # Round the new SL early
+                new_sl = round(new_sl, digits)
+                
+                # Get current SL (handle None/0)
+                current_sl = pos.sl if pos.sl else 0.0
+                current_sl = round(current_sl, digits)  # Normalize for comparison
+                
+                # Check if we should update
+                should_update = False
+                
+                # Case 1: No SL currently
+                if current_sl == 0:
+                    should_update = True
+                    logging.info(f"SELL: No current SL, will set to {new_sl:.{digits}f}")
+                
+                # Case 2: SL exists, check if new one is better
+                elif new_sl < current_sl:  # For SELL, lower SL is better
+                    step_diff = current_sl - new_sl
+                    if step_diff >= (min_step * point):
+                        should_update = True
+                    else:
+                        logging.debug(f"SELL: New SL {new_sl:.{digits}f} only {step_diff/point:.1f} points better than current {current_sl:.{digits}f}, min step is {min_step}")
+                else:
+                    logging.debug(f"SELL: New SL {new_sl:.{digits}f} not better than current {current_sl:.{digits}f}")
+                
+                # Send update if necessary
+                if should_update:
+                    if time.time() - last_sl_update > 1:
+                        request = {
+                            "action": mt5.TRADE_ACTION_SLTP,
+                            "position": pos.ticket,
+                            "sl": new_sl,
+                            "tp": pos.tp if pos.tp else 0
+                        }
+                        
+                        result = mt5.order_send(request)
+                        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                            logging.info(f"SELL SL updated {symbol}/{magic}/{comment or 'no comment'}: {current_sl:.{digits}f} -> {new_sl:.{digits}f}")
+                            last_sl_update = time.time()
+                            error_count = 0
+                        elif result:
+                            logging.warning(f"SELL trailing error [{result.retcode}]: {result.comment}")
+                            error_count += 1
 
-            # Arrêter si trop d'erreurs
+            # Stop if too many errors
             if error_count >= max_errors:
-                logging.error(f"Trop d'erreurs ({error_count}) dans trailing {symbol}/{magic}/{comment or 'no comment'}, arrêt")
+                logging.error(f"Too many errors ({error_count}) in trailing {symbol}/{magic}/{comment or 'no comment'}, stopping")
                 break
 
-            time.sleep(TRAILING_CHECK_INTERVAL)  # Pause entre les vérifications
+            time.sleep(TRAILING_CHECK_INTERVAL)
             
         except Exception as e:
-            logging.error(f"Erreur dans trailing loop: {e}")
+            logging.error(f"Error in trailing loop: {e}")
             logging.error(traceback.format_exc())
             error_count += 1
             if error_count >= max_errors:
                 break
             time.sleep(1)
 
-    logging.info(f"🛑 Thread trailing terminé {symbol}/{magic}/{comment or 'no comment'}")
+    logging.info(f"Trailing thread ended {symbol}/{magic}/{comment or 'no comment'}")
     with threads_lock:
         running_threads.pop(key, None)
         thread_flags.pop(key, None)
-
 
 @app.post("/trailing/{symbol}/{magic}")
 def start_trailing(
     symbol: str, 
     magic: int, 
-    comment: str = Query("", description="Commentaire pour filtrer la position"),
-    trail_points: float = Query(..., description="Distance du trailing en points", gt=0),
-    min_step: float = Query(..., description="Step minimum en points", gt=0)
+    comment: str = Query("", description="Comment to filter the position"),
+    trail_points: float = Query(..., description="Trailing distance in points", gt=0),
+    min_step: float = Query(..., description="Minimum step in points", gt=0)
 ):
-    """Démarre le trailing stop pour une position spécifique"""
-    # Nettoyer les threads morts
+    """Starts trailing stop for a specific position"""
+    # Clean up dead threads
     cleanup_dead_threads()
     
-    # Validation des paramètres obligatoires
+    # Validate required parameters
     if trail_points <= 0:
         return response_from_mt5_result({
             "retcode": 10013,
             "status": "error",
-            "comment": "trail_points doit être > 0"
+            "comment": "trail_points must be > 0"
         })
     
     if min_step <= 0:
         return response_from_mt5_result({
             "retcode": 10013,
             "status": "error",
-            "comment": "min_step doit être > 0"
+            "comment": "min_step must be > 0"
         })
     
     key = (symbol, magic, comment)
@@ -1351,15 +1536,15 @@ def start_trailing(
             return response_from_mt5_result({
                 "retcode": 10040,
                 "status": "error", 
-                "comment": "Trailing déjà en cours pour cette position"
+                "comment": "Trailing already running for this position"
             })
     
-    # Vérifier qu'une position existe
+    # Check that position exists
     if not check_position_exists(symbol, magic, comment):
         return response_from_mt5_result({
             "retcode": 10016,
             "status": "error",
-            "comment": f"Aucune position trouvée pour {symbol}/{magic}/{comment or 'no comment'}"
+            "comment": f"No position found for {symbol}/{magic}/{comment or 'no comment'}"
         })
     
     with threads_lock:
@@ -1374,7 +1559,7 @@ def start_trailing(
     return response_from_mt5_result({
         "retcode": 10009,
         "status": "success",
-        "comment": f"Trailing démarré pour {symbol}/{magic}/{comment or 'no comment'}"
+        "comment": f"Trailing started for {symbol}/{magic}/{comment or 'no comment'}"
     })
 
 
@@ -1382,9 +1567,9 @@ def start_trailing(
 def cancel_trailing(
     symbol: str, 
     magic: int,
-    comment: str = Query("", description="Commentaire pour identifier le trailing")
+    comment: str = Query("", description="Comment to identify the trailing")
 ):
-    """Annule le trailing stop en cours"""
+    """Cancels the running trailing stop"""
     key = (symbol, magic, comment)
     
     with threads_lock:
@@ -1392,117 +1577,154 @@ def cancel_trailing(
             return response_from_mt5_result({
                 "retcode": 10016,
                 "status": "warning",
-                "comment": "Aucun trailing actif pour cette position"
+                "comment": "No active trailing for this position"
             })
         thread_flags[key] = False
     
     return response_from_mt5_result({
         "retcode": 10009,
         "status": "success",
-        "comment": f"Annulation du trailing pour {symbol}/{magic}/{comment or 'no comment'}"
+        "comment": f"Trailing cancelled for {symbol}/{magic}/{comment or 'no comment'}"
     })
 
 
-# Endpoint webhook principal amélioré
-@app.post("/webhooktv", summary="Recevoir les signaux de TradingView (Pine Connector compatible)")
+# Enhanced webhook main endpoint - SEE PART 3 FOR THE COMPLETE FUNCTION
+# Part 3 - Webhook handler continuation
+@app.post("/webhooktv", summary="Receive TradingView signals (Pine Connector compatible)")
 def tradingview_webhook(
     webhook_data: TradingViewWebhook,
-    ratio: float = Query(None, description="Multiplicateur pour la taille du lot", gt=0),
-    magic: int = Query(None, description="Override du magic number", ge=0),
-    check_duplicate: bool = Query(True, description="Vérifier les positions/ordres existants")
+    ratio: Optional[float] = Query(None, description="Ratio override (0.0 → 1.0)", ge=0.0),
+    magic: Optional[int]   = Query(None, description="Magic number override", ge=0),
+    symbol: Optional[str] = Query(None, description="Broker symbol override (URL-encode '+' as %2B)", min_length=1, max_length=64, regex=r"^[A-Za-z0-9._\-\+]+$"),
+    deviation: Optional[int] = Query(None, description="Deviation override", ge=0),
+    check_duplicate: bool  = Query(True, description="Check duplicate orders")
+
 ):
     """
-    Reçoit les alertes TradingView et exécute les actions sur MT5 (Pine Connector compatible)
-    
-    Paramètres GET:
-    - ratio: Multiplicateur optionnel pour ajuster la taille du lot (doit être > 0)
-    - magic: Override optionnel du magic number (doit être >= 0)
-    - check_duplicate: Vérifie l'existence de positions/ordres avant création (défaut: True)
-    
-    Actions supportées:
-    - buy: Ouvre une position long (vérifie d'abord si elle n'existe pas déjà)
-    - sell: Ouvre une position short (vérifie d'abord si elle n'existe pas déjà)
-    - buylimit: Place un ordre buy limit (vérifie les doublons)
-    - selllimit: Place un ordre sell limit (vérifie les doublons)
-    - buystop: Place un ordre buy stop (vérifie les doublons)
-    - sellstop: Place un ordre sell stop (vérifie les doublons)
-    - closelong: Ferme toutes les positions long
-    - closeshort: Ferme toutes les positions short
-    - closeall: Ferme toutes les positions
-    - closepending: Annule tous les ordres en attente
-    - modify: Modifie SL/TP des positions existantes
-    - start_trailing: Démarre le trailing stop
-    - cancel_trailing: Arrête le trailing stop
+    Receives TradingView alerts and executes actions on MT5 (Pine Connector compatible)
     """
     
     try:
-        # Vérifier la connexion MT5
-        if not ensure_mt5_connection():
-            return response_from_mt5_result({
-                "retcode": -1,
-                "comment": "MT5 connection lost, please retry"
-            })
+        # COMPLETE LOG OF RECEIVED DATA
+        logging.info("="*60)
+        logging.info("[WEBHOOK] NEW REQUEST RECEIVED")
+        logging.info("="*60)
         
-        # Nettoyer les threads morts périodiquement
+        # Display all received data
+        webhook_dict = webhook_data.dict()
+        logging.info(f"[WEBHOOK] Complete POST data received:")
+        logging.info(json.dumps(webhook_dict, indent=2))
+        
+        # Display GET parameters
+        logging.info(f"[WEBHOOK] GET parameters:")
+        logging.info(f"  - ratio: {ratio}")
+        logging.info(f"  - magic: {magic}")
+        logging.info(f"  - check_duplicate: {check_duplicate}")
+        
+        # Check MT5 connection
+        if not ensure_mt5_connection():
+            error_msg = "MT5 connection lost, please retry"
+            logging.error(f"[WEBHOOK ERROR] {error_msg}")
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "retcode": -1,
+                    "status": "MT5_CONNECTION_ERROR",
+                    "comment": error_msg,
+                    "received_data": webhook_dict
+                }
+            )
+        
+        # Clean up dead threads periodically
         cleanup_dead_threads()
         
-        logging.info(f"[WEBHOOK] Reçu: {webhook_data.action} sur {webhook_data.symbol}")
-        if ratio:
-            logging.info(f"Ratio multiplicateur: {ratio}")
+        # Normalize
+        action = webhook_data.action.lower().strip()
+        symbol = symbol if symbol is not None else webhook_data.symbol
+        symbol = symbol.upper()
+        deviation = deviation if deviation is not None else webhook_data.deviation
         
-        # Override du magic number si spécifié
+        logging.info(f"[WEBHOOK] Normalized action: '{action}' on symbol '{symbol}'")
+        
+        # Override du magic number if specified
         effective_magic = magic if magic is not None else webhook_data.magic
         if magic is not None:
-            logging.info(f"Magic override: {webhook_data.magic} → {effective_magic}")
+            logging.info(f"[WEBHOOK] Magic override: {webhook_data.magic} -> {effective_magic}")
         
-        # Validation des paramètres de trailing
+        # Validate trailing parameters
         if webhook_data.trail_points is not None and webhook_data.trail_points <= 0:
-            return response_from_mt5_result({
-                "retcode": 10013,
-                "comment": f"trail_points invalide ({webhook_data.trail_points}), doit être > 0"
-            })
+            error_msg = f"Invalid trail_points ({webhook_data.trail_points}), must be > 0"
+            logging.error(f"[WEBHOOK ERROR] {error_msg}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "retcode": 10013,
+                    "status": "INVALID_TRAIL_POINTS",
+                    "comment": error_msg,
+                    "received_data": webhook_dict
+                }
+            )
         
         if webhook_data.trail_step is not None and webhook_data.trail_step <= 0:
-            return response_from_mt5_result({
-                "retcode": 10013,
-                "comment": f"trail_step invalide ({webhook_data.trail_step}), doit être > 0"
-            })
+            error_msg = f"Invalid trail_step ({webhook_data.trail_step}), must be > 0"
+            logging.error(f"[WEBHOOK ERROR] {error_msg}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "retcode": 10013,
+                    "status": "INVALID_TRAIL_STEP",
+                    "comment": error_msg,
+                    "received_data": webhook_dict
+                }
+            )
         
-        # Normaliser
-        action = webhook_data.action.lower().strip()
-        symbol = webhook_data.symbol.upper()
-        
-        # Vérifier que le symbole existe dans MT5
+        # Check that symbol exists in MT5
         symbol_info = mt5.symbol_info(symbol)
         if symbol_info is None:
-            # Essayer sans le préfixe broker si présent
+            # Try without broker prefix if present
             if ":" in symbol:
                 symbol = symbol.split(":")[-1]
                 symbol_info = mt5.symbol_info(symbol)
                 if symbol_info is None:
-                    return response_from_mt5_result({
-                        "retcode": 10014,
-                        "comment": f"Symbole {symbol} introuvable dans MT5"
-                    })
+                    error_msg = f"Symbol {symbol} not found in MT5"
+                    logging.error(f"[WEBHOOK ERROR] {error_msg}")
+                    return JSONResponse(
+                        status_code=404,
+                        content={
+                            "retcode": 10014,
+                            "status": "SYMBOL_NOT_FOUND",
+                            "comment": error_msg,
+                            "received_data": webhook_dict
+                        }
+                    )
         
-        # Activer le symbole s'il n'est pas visible
-        if not symbol_info.visible:
+        logging.info(f"[WEBHOOK] Symbol {symbol} found in MT5")
+        
+        # Activate symbol if not visible
+        if symbol_info is not None and not symbol_info.visible:
             if not mt5.symbol_select(symbol, True):
-                return response_from_mt5_result({
-                    "retcode": 10014,
-                    "comment": f"Impossible d'activer le symbole {symbol}"
-                })
+                error_msg = f"Cannot activate symbol {symbol}"
+                logging.error(f"[WEBHOOK ERROR] {error_msg}")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "retcode": 10014,
+                        "status": "SYMBOL_ACTIVATION_FAILED",
+                        "comment": error_msg,
+                        "received_data": webhook_dict
+                    }
+                )
             symbol_info = mt5.symbol_info(symbol)
         
-        # Calculer et normaliser la taille du lot
+        # Calculate and normalize lot size
         lot_size = webhook_data.lots
         
         if ratio:
             original_lot = lot_size
             lot_size = lot_size * ratio
-            logging.info(f"Lot ajusté: {original_lot} * {ratio} = {lot_size}")
+            logging.info(f"[WEBHOOK] Lot adjusted: {original_lot} * {ratio} = {lot_size}")
         
-        # Normaliser selon les contraintes du symbole
+        # Normalize according to symbol constraints
         if symbol_info:
             lot_step = symbol_info.volume_step
             lot_min = symbol_info.volume_min
@@ -1512,34 +1734,34 @@ def tradingview_webhook(
                 steps_from_min = max(0, steps_from_min)
                 lot_size = lot_min + (steps_from_min * lot_step)
                 
-                # Arrondir à la précision du step
+                # Round to step precision
                 step_str = str(lot_step)
                 if '.' in step_str:
                     decimals = len(step_str.split('.')[1])
                     lot_size = round(lot_size, decimals)
             
-            # Vérifier les limites
+            # Check limits
             if lot_size < symbol_info.volume_min:
-                logging.warning(f"Lot augmenté à {symbol_info.volume_min} (minimum)")
+                logging.warning(f"[WEBHOOK] Lot increased to {symbol_info.volume_min} (minimum)")
                 lot_size = symbol_info.volume_min
             
             if symbol_info.volume_max and lot_size > symbol_info.volume_max:
-                logging.warning(f"Lot réduit à {symbol_info.volume_max} (maximum)")
+                logging.warning(f"[WEBHOOK] Lot reduced to {symbol_info.volume_max} (maximum)")
                 lot_size = symbol_info.volume_max
         
-        # Appliquer les limites configurées
+        # Apply configured limits
         if webhook_data.max_lot and lot_size > webhook_data.max_lot:
-            logging.warning(f"Lot réduit à {webhook_data.max_lot} (limite signal)")
+            logging.warning(f"[WEBHOOK] Lot reduced to {webhook_data.max_lot} (signal limit)")
             lot_size = webhook_data.max_lot
         
         if lot_size > MAX_LOT:
-            logging.warning(f"Lot réduit à {MAX_LOT} (limite serveur)")
+            logging.warning(f"[WEBHOOK] Lot reduced to {MAX_LOT} (server limit)")
             lot_size = MAX_LOT
         
-        logging.info(f"Taille de lot finale: {lot_size}")
+        logging.info(f"[WEBHOOK] Final lot size: {lot_size}")
         
         # =====================================
-        # FERMETURE DES POSITIONS OPPOSÉES
+        # CLOSING OPPOSITE POSITIONS
         # =====================================
         if webhook_data.closeoppositesignal and action in ["buy", "sell", "buylimit", "selllimit", "buystop", "sellstop"]:
             positions = mt5.positions_get(symbol=symbol)
@@ -1547,46 +1769,48 @@ def tradingview_webhook(
                 for pos in positions:
                     if pos.magic != effective_magic:
                         continue
-                    # Filtrer par comment si spécifié
+                    # Filter by comment if specified
                     if webhook_data.comment and pos.comment != webhook_data.comment:
                         continue
 
-                    # Fermer les positions opposées
+                    # Close opposite positions
                     if action in ["buy", "buylimit", "buystop"] and pos.type == mt5.ORDER_TYPE_SELL:
-                        # Arrêter le trailing si actif
+                        # Stop trailing if active
                         key = (symbol, effective_magic, pos.comment or "")
                         with threads_lock:
                             if key in thread_flags:
                                 thread_flags[key] = False
                         
-                        close_result = close_position_by_id(pos.ticket, effective_magic, webhook_data.deviation)
-                        logging.info(f"Position SHORT opposée fermée: #{pos.ticket}")
+                        close_result = close_position_by_id(pos.ticket, effective_magic, deviation)
+                        logging.info(f"Opposite SHORT position closed: #{pos.ticket}")
                     elif action in ["sell", "selllimit", "sellstop"] and pos.type == mt5.ORDER_TYPE_BUY:
-                        # Arrêter le trailing si actif
+                        # Stop trailing if active
                         key = (symbol, effective_magic, pos.comment or "")
                         with threads_lock:
                             if key in thread_flags:
                                 thread_flags[key] = False
                         
-                        close_result = close_position_by_id(pos.ticket, effective_magic, webhook_data.deviation)
-                        logging.info(f"Position LONG opposée fermée: #{pos.ticket}")
+                        close_result = close_position_by_id(pos.ticket, effective_magic, deviation)
+                        logging.info(f"Opposite LONG position closed: #{pos.ticket}")
         
         # =====================================
-        # TRAITEMENT DES ACTIONS
+        # PROCESSING ACTIONS
         # =====================================
         
-        # --- ORDRES MARKET ---
+        logging.info(f"[WEBHOOK] Processing action: {action}")
+        
+        # --- MARKET ORDERS ---
         if action in ["buy", "sell"]:
             
-            # VÉRIFIER SI UNE POSITION EXISTE DÉJÀ
+            # CHECK IF POSITION ALREADY EXISTS
             if check_duplicate and check_position_exists(symbol, effective_magic, webhook_data.comment):
-                logging.warning(f"⚠️ Position {action.upper()} existe déjà pour {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}")
+                logging.warning(f"WARNING: {action.upper()} position already exists for {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}")
                 return response_from_mt5_result({
                     "retcode": 10016,  # TRADE_RETCODE_INVALID
                     "comment": f"Position {action} already exists for {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}"
                 })
             
-            # Calculer SL/TP
+            # Calculate SL/TP
             sl_price = webhook_data.sl
             tp_price = webhook_data.tp
             
@@ -1598,7 +1822,7 @@ def tradingview_webhook(
                 else:
                     tick = mt5.symbol_info_tick(symbol)
                     if not tick:
-                        raise Exception(f"Impossible d'obtenir le tick pour {symbol}")
+                        raise Exception(f"Cannot get tick for {symbol}")
                     base_price = tick.ask if action == "buy" else tick.bid
                 
                 if webhook_data.slpips and sl_price is None:
@@ -1613,7 +1837,7 @@ def tradingview_webhook(
                     else:
                         tp_price = base_price - (webhook_data.tppips * point)
             
-            # Créer l'ordre
+            # Create order
             order_request = OrderRequest(
                 symbol=symbol,
                 side=action,
@@ -1622,20 +1846,20 @@ def tradingview_webhook(
                 tp=tp_price,
                 magic=effective_magic,
                 comment=webhook_data.comment or "",
-                deviation=webhook_data.deviation,
+                deviation=deviation,
                 price=webhook_data.price
             )
             
             result = trade_new(order_request)
             
-            # Si trailing demandé et position créée avec succès
+            # If trailing requested and position created successfully
             if webhook_data.trail_points and isinstance(result, dict) and result.get("retcode") == mt5.TRADE_RETCODE_DONE:
                 if webhook_data.trail_points <= 0:
-                    logging.error(f"trail_points invalide ({webhook_data.trail_points}), trailing non démarré")
+                    logging.error(f"Invalid trail_points ({webhook_data.trail_points}), trailing not started")
                 elif not webhook_data.trail_step or webhook_data.trail_step <= 0:
-                    logging.error(f"trail_step manquant ou invalide ({webhook_data.trail_step}), trailing non démarré")
+                    logging.error(f"Missing or invalid trail_step ({webhook_data.trail_step}), trailing not started")
                 else:
-                    # Démarrer le trailing automatiquement
+                    # Start trailing automatically
                     key = (symbol, effective_magic, webhook_data.comment or "")
                     with threads_lock:
                         if key not in running_threads or not running_threads[key].is_alive():
@@ -1647,20 +1871,20 @@ def tradingview_webhook(
                             )
                             running_threads[key] = t
                             t.start()
-                            logging.info(f"Trailing auto-démarré pour la nouvelle position")
+                            logging.info(f"Trailing auto-started for new position")
             
             return result
         
-        # --- ORDRES LIMIT ET STOP ---
+        # --- LIMIT AND STOP ORDERS ---
         elif action in ["buylimit", "selllimit", "buystop", "sellstop"]:
             
             if not webhook_data.price:
                 return response_from_mt5_result({
                     "retcode": 10013,
-                    "comment": f"Prix requis pour l'action {action}"
+                    "comment": f"Price required for action {action}"
                 })
             
-            # Déterminer le type d'ordre MT5
+            # Determine MT5 order type
             order_type_map = {
                 "buylimit": mt5.ORDER_TYPE_BUY_LIMIT,
                 "selllimit": mt5.ORDER_TYPE_SELL_LIMIT,
@@ -1670,15 +1894,15 @@ def tradingview_webhook(
             
             order_type = order_type_map.get(action)
             
-            # VÉRIFIER SI UN ORDRE PENDING EXISTE DÉJÀ
+            # CHECK IF PENDING ORDER ALREADY EXISTS
             if check_duplicate and check_pending_order_exists(symbol, effective_magic, webhook_data.comment, order_type):
-                logging.warning(f"[WARNING] Ordre {action.upper()} existe déjà pour {symbol}/{effective_magic}/{webhook_data.comment}")
+                logging.warning(f"[WARNING] {action.upper()} order already exists for {symbol}/{effective_magic}/{webhook_data.comment}")
                 return response_from_mt5_result({
                     "retcode": 10016,
                     "comment": f"Pending order {action} already exists for {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}"
                 })
             
-            # Calculer SL/TP
+            # Calculate SL/TP
             sl_price = webhook_data.sl
             tp_price = webhook_data.tp
             
@@ -1698,7 +1922,7 @@ def tradingview_webhook(
                     else:
                         tp_price = base_price - (webhook_data.tppips * point)
             
-            # Préparer l'ordre
+            # Prepare order
             filling_mode = get_safe_filling_mode(symbol_info)
             digits = symbol_info.digits
             
@@ -1723,13 +1947,13 @@ def tradingview_webhook(
             result = mt5.order_send(pending_request)
             
             if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                logging.info(f"Ordre {action} placé avec succès: ticket={result.order}")
+                logging.info(f"Order {action} placed successfully: ticket={result.order}")
             else:
-                logging.error(f"Échec de placement de l'ordre {action}: {result}")
+                logging.error(f"Failed to place {action} order: {result}")
             
             return response_from_mt5_result(result)
         
-        # --- FERMETURES ---
+        # --- CLOSURES ---
         elif action in ["closelong", "closeshort", "closeall"]:
             
             positions_closed = []
@@ -1739,7 +1963,7 @@ def tradingview_webhook(
                 for pos in positions:
                     if pos.magic != effective_magic:
                         continue
-                    # Filtrer par comment si spécifié
+                    # Filter by comment if specified
                     if webhook_data.comment and pos.comment != webhook_data.comment:
                         continue
                     
@@ -1753,14 +1977,14 @@ def tradingview_webhook(
                         should_close = True
                     
                     if should_close:
-                        # Arrêter le trailing si actif
+                        # Stop trailing if active
                         key = (symbol, effective_magic, pos.comment or "")
                         with threads_lock:
                             if key in thread_flags:
                                 thread_flags[key] = False
-                                logging.info(f"Trailing stoppé pour position #{pos.ticket}")
+                                logging.info(f"Trailing stopped for position #{pos.ticket}")
                         
-                        result = close_position_by_id(pos.ticket, effective_magic, webhook_data.deviation)
+                        result = close_position_by_id(pos.ticket, effective_magic, deviation)
                         positions_closed.append({
                             "ticket": pos.ticket,
                             "volume": pos.volume,
@@ -1769,7 +1993,7 @@ def tradingview_webhook(
                             "profit": pos.profit,
                             "comment": pos.comment or ""
                         })
-                        logging.info(f"Position fermée: #{pos.ticket}")
+                        logging.info(f"Position closed: #{pos.ticket}")
             
             return response_from_mt5_result({
                 "action": action,
@@ -1778,7 +2002,7 @@ def tradingview_webhook(
                 "positions": positions_closed
             })
         
-        # --- ANNULER ORDRES PENDING ---
+        # --- CANCEL PENDING ORDERS ---
         elif action == "closepending":
             
             orders_cancelled = []
@@ -1788,7 +2012,7 @@ def tradingview_webhook(
                 for order in orders:
                     if order.magic != effective_magic:
                         continue
-                    # Filtrer par comment si spécifié
+                    # Filter by comment if specified
                     if webhook_data.comment and order.comment != webhook_data.comment:
                         continue
                     
@@ -1808,7 +2032,7 @@ def tradingview_webhook(
                             "symbol": order.symbol,
                             "comment": order.comment or ""
                         })
-                        logging.info(f"Ordre annulé: #{order.ticket}")
+                        logging.info(f"Order cancelled: #{order.ticket}")
             
             return response_from_mt5_result({
                 "action": "closepending",
@@ -1827,7 +2051,7 @@ def tradingview_webhook(
                 for pos in positions:
                     if pos.magic != effective_magic:
                         continue
-                    # Filtrer par comment si spécifié
+                    # Filter by comment if specified
                     if webhook_data.comment and pos.comment != webhook_data.comment:
                         continue
                     
@@ -1837,7 +2061,7 @@ def tradingview_webhook(
                         "symbol": symbol
                     }
                     
-                    # Calculer SL/TP
+                    # Calculate SL/TP
                     if webhook_data.sl is not None:
                         modify_request["sl"] = webhook_data.sl
                     elif webhook_data.slpips is not None:
@@ -1868,7 +2092,7 @@ def tradingview_webhook(
                             "new_tp": modify_request.get("tp"),
                             "comment": pos.comment or ""
                         })
-                        logging.info(f"Position modifiée: #{pos.ticket}")
+                        logging.info(f"Position modified: #{pos.ticket}")
             
             return response_from_mt5_result({
                 "action": "modify",
@@ -1877,80 +2101,200 @@ def tradingview_webhook(
                 "positions": positions_modified
             })
         
-        # --- TRAILING ---
-        elif action == "start_trailing":
-            # Vérifier que les paramètres requis sont présents
-            if not webhook_data.trail_points or webhook_data.trail_points <= 0:
-                return response_from_mt5_result({
-                    "retcode": 10013,
-                    "comment": "trail_points requis et doit être > 0"
-                })
+        # --- EXIT WITH TRAILING (UPDATED) ---
+        elif action == "exit":
+            logging.info(f"[WEBHOOK EXIT] Processing exit for {symbol}/{effective_magic}/{webhook_data.comment}")
             
-            if not webhook_data.trail_step or webhook_data.trail_step <= 0:
-                return response_from_mt5_result({
-                    "retcode": 10013,
-                    "comment": "trail_step requis et doit être > 0"
-                })
+            # Check that position exists
+            positions = mt5.positions_get(symbol=symbol)
+            position = None
             
+            for pos in positions if positions else []:
+                if pos.magic == effective_magic:
+                    if webhook_data.comment and pos.comment != webhook_data.comment:
+                        continue
+                    position = pos
+                    logging.info(f"[WEBHOOK EXIT] Position found: #{pos.ticket}")
+                    logging.info(f"[WEBHOOK EXIT] Real entry price: {pos.price_open}")
+                    break
+            
+            if not position:
+                logging.warning(f"[WEBHOOK EXIT] Position not found yet for {symbol}/{effective_magic}/{webhook_data.comment}")
+            
+            # 1. MODIFY SL/TP IF PROVIDED AND POSITION EXISTS
+            if position and (webhook_data.sl is not None or webhook_data.tp is not None):
+                # Build modification request
+                modify_request = {
+                    "action": mt5.TRADE_ACTION_SLTP,
+                    "position": position.ticket,
+                }
+                
+                # Handle SL: if null, keep existing; if provided (including 0), use it
+                if webhook_data.sl is not None:
+                    modify_request["sl"] = webhook_data.sl
+                    logging.info(f"[WEBHOOK EXIT] Setting SL to: {webhook_data.sl}")
+                else:
+                    modify_request["sl"] = position.sl if position.sl else 0
+                    logging.info(f"[WEBHOOK EXIT] Keeping existing SL: {position.sl}")
+                
+                # Handle TP: if null, keep existing; if provided (including 0), use it  
+                if webhook_data.tp is not None:
+                    modify_request["tp"] = webhook_data.tp
+                    logging.info(f"[WEBHOOK EXIT] Setting TP to: {webhook_data.tp}")
+                else:
+                    modify_request["tp"] = position.tp if position.tp else 0
+                    logging.info(f"[WEBHOOK EXIT] Keeping existing TP: {position.tp}")
+                
+                logging.info(f"[WEBHOOK EXIT] Modifying position #{position.ticket}: SL={modify_request['sl']}, TP={modify_request['tp']}")
+                result = mt5.order_send(modify_request)
+                if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                    logging.info(f"[WEBHOOK EXIT] SL/TP modified successfully")
+                else:
+                    logging.error(f"[WEBHOOK EXIT] Failed to modify SL/TP: {result}")
+            
+            # 2. SET UP TRAILING WITH ADJUSTED TRIGGER
+            if webhook_data.trail_points and webhook_data.trail_points > 0:
+                key = (symbol, effective_magic, webhook_data.comment or "")
+                
+                if position:
+                    # Position exists - we can calculate the real trigger
+                    is_long = position.type == mt5.ORDER_TYPE_BUY
+                    real_entry = position.price_open
+                    
+                    logging.info(f"[WEBHOOK EXIT] Position type: {'LONG' if is_long else 'SHORT'}")
+                    logging.info(f"[WEBHOOK EXIT] Real entry price: {real_entry}")
+                    
+                    # If trigger_price provided, adjust it based on entry delta
+                    if webhook_data.trigger_price:
+                        # Calculate the theoretical entry price (if provided)
+                        theoretical_entry = webhook_data.price if webhook_data.price else real_entry
+                        
+                        # Calculate the delta between real and theoretical entry
+                        entry_delta = real_entry - theoretical_entry
+                        
+                        # Adjust the trigger price by the same delta
+                        adjusted_trigger = webhook_data.trigger_price + entry_delta
+                        
+                        logging.info(f"[WEBHOOK EXIT] Theoretical entry: {theoretical_entry}, Real entry: {real_entry}")
+                        logging.info(f"[WEBHOOK EXIT] Entry delta: {entry_delta:.5f}")
+                        logging.info(f"[WEBHOOK EXIT] Original trigger: {webhook_data.trigger_price}, Adjusted trigger: {adjusted_trigger}")
+                        
+                        # Get current price and check if trigger already reached
+                        tick = mt5.symbol_info_tick(symbol)
+                        trigger_already_reached = False
+                        
+                        if tick:
+                            current_price = tick.bid if is_long else tick.ask
+                            
+                            # Check if trigger already reached
+                            if is_long:
+                                trigger_already_reached = current_price >= adjusted_trigger
+                            else:
+                                trigger_already_reached = current_price <= adjusted_trigger
+                            
+                            logging.info(f"[WEBHOOK EXIT] Current price: {current_price}, Trigger already reached: {trigger_already_reached}")
+                        
+                        if trigger_already_reached:
+                            # Trigger already reached - start trailing immediately
+                            logging.info(f"[WEBHOOK EXIT] Trigger already reached - starting trail immediately")
+                        else:
+                            # Trigger not reached yet - set up monitoring
+                            trailing_triggers[key] = {
+                                "trigger_price": adjusted_trigger,
+                                "trail_points": webhook_data.trail_points,
+                                "trail_step": webhook_data.trail_step if webhook_data.trail_step else 1,
+                                "is_long": is_long
+                            }
+                            logging.info(f"[WEBHOOK EXIT] Trailing trigger set at {adjusted_trigger} (adjusted from {webhook_data.trigger_price}) with {webhook_data.trail_points} points")
+                            
+                            return response_from_mt5_result({
+                                "retcode": 10009,
+                                "comment": f"Exit trigger configured at {adjusted_trigger} (adjusted for real entry)"
+                            })
+                    
+                    # No trigger price OR trigger already reached - start trailing immediately
+                    with threads_lock:
+                        if key not in running_threads or not running_threads[key].is_alive():
+                            t = threading.Thread(
+                                target=trailing_loop,
+                                args=(symbol, effective_magic, webhook_data.comment or "", 
+                                    webhook_data.trail_points, webhook_data.trail_step if webhook_data.trail_step else 1),
+                                daemon=True
+                            )
+                            running_threads[key] = t
+                            thread_flags[key] = True
+                            t.start()
+                            logging.info(f"[WEBHOOK EXIT] Trailing started immediately with {webhook_data.trail_points} points")
+                            
+                            return response_from_mt5_result({
+                                "retcode": 10009,
+                                "comment": "Trailing started immediately"
+                            })
+                else:
+                    # No position found yet - set up trigger with original (unadjusted) values
+                    if webhook_data.trigger_price:
+                        # We don't know if it's long or short yet, so we'll store both the trigger and detect direction later
+                        trailing_triggers[key] = {
+                            "trigger_price": webhook_data.trigger_price,
+                            "trail_points": webhook_data.trail_points,
+                            "trail_step": webhook_data.trail_step if webhook_data.trail_step else 1,
+                            "is_long": None  # Will be determined when position is found
+                        }
+                        logging.info(f"[WEBHOOK EXIT] Position not found yet. Trailing trigger stored at {webhook_data.trigger_price} with {webhook_data.trail_points} points")
+                        
+                        return response_from_mt5_result({
+                            "retcode": 10009,
+                            "comment": f"Exit trigger configured at {webhook_data.trigger_price} (will adjust when position opens)"
+                        })
+                    else:
+                        # No trigger and no position - can't start trailing yet
+                        logging.warning(f"[WEBHOOK EXIT] No position found and no trigger price provided for {symbol}, magic {effective_magic}")
+                        return response_from_mt5_result({
+                            "retcode": 10004,
+                            "comment": "Cannot start trailing: no position found and no trigger price"
+                        })
+                        
+        # --- CANCEL EXIT/TRAILING ---
+        elif action == "cancel_exit" or action == "cancel_trailing":  # Support both names for compatibility
             key = (symbol, effective_magic, webhook_data.comment or "")
+            cancelled = False
             
-            # Vérifier qu'une position existe
-            if not check_position_exists(symbol, effective_magic, webhook_data.comment):
+            # Cancel pending trigger
+            if key in trailing_triggers:
+                trailing_triggers.pop(key)
+                cancelled = True
+                logging.info(f"Trailing trigger cancelled for {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}")
+            
+            # Cancel active trailing
+            with threads_lock:
+                if key in thread_flags:
+                    thread_flags[key] = False
+                    cancelled = True
+                    logging.info(f"Active trailing stopped for {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}")
+            
+            if cancelled:
+                return response_from_mt5_result({
+                    "retcode": 10009,
+                    "comment": f"Exit cancelled for {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}"
+                })
+            else:
                 return response_from_mt5_result({
                     "retcode": 10016,
-                    "comment": f"Aucune position trouvée pour démarrer le trailing"
+                    "comment": "No exit to cancel"
                 })
-            
-            # Vérifier si déjà en cours
-            with threads_lock:
-                if key in running_threads and running_threads[key].is_alive():
-                    return response_from_mt5_result({
-                        "retcode": 10040,
-                        "comment": "Trailing déjà en cours"
-                    })
-                
-                # Démarrer le trailing
-                t = threading.Thread(
-                    target=trailing_loop,
-                    args=(symbol, effective_magic, webhook_data.comment or "", 
-                          webhook_data.trail_points, webhook_data.trail_step),
-                    daemon=True
-                )
-                running_threads[key] = t
-                t.start()
-            
-            return response_from_mt5_result({
-                "retcode": 10009,
-                "comment": f"Trailing démarré pour {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}"
-            })
-
-        elif action == "cancel_trailing":
-            key = (symbol, effective_magic, webhook_data.comment or "")
-            
-            with threads_lock:
-                if key not in running_threads:
-                    return response_from_mt5_result({
-                        "retcode": 10016,
-                        "comment": "Aucun trailing actif"
-                    })
-                thread_flags[key] = False
-            
-            return response_from_mt5_result({
-                "retcode": 10009,
-                "comment": f"Trailing annulé pour {symbol}/{effective_magic}/{webhook_data.comment or 'no comment'}"
-            })
         
-        # --- ACTION NON RECONNUE ---
+        # --- UNRECOGNIZED ACTION ---
         else:
             return response_from_mt5_result({
                 "retcode": 10030,
-                "comment": f"Action non reconnue: {action}. Actions valides: buy, sell, buylimit, selllimit, buystop, sellstop, closeall, closelong, closeshort, closepending, modify, start_trailing, cancel_trailing"
+                "comment": f"Unrecognized action: {action}. Valid actions: buy, sell, buylimit, selllimit, buystop, sellstop, closeall, closelong, closeshort, closepending, modify, exit, cancel_exit"
             })
     
     except Exception as e:
-        logging.error(f"[ERROR] Erreur webhook: {str(e)}")
+        logging.error(f"[ERROR] Webhook error: {str(e)}")
         logging.error(traceback.format_exc())
         return response_from_exception(e)
+
 
 
 # uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4 --reload --reload-include *.yml"
@@ -1958,4 +2302,3 @@ def tradingview_webhook(
 
 if __name__ == "__main__":
     uvicorn.run("api:app", port=8000, host="0.0.0.0", reload=False, log_level="debug")
-
