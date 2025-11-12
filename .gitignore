@@ -3,4 +3,5 @@ docker-compose.yml
 mt5_data/
 mt5_data_prod/
 mt5_data_*/
+back/
 .env*
